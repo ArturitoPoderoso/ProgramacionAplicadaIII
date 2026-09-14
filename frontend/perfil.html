@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil - Ferretería Jessmi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="dashboard.css?v=3">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="ph-fill ph-gear sidebar-logo-icon"></i>
+                <div class="sidebar-brand">
+                    <span>Ferretería</span>
+                    <span>JESSMI</span>
+                </div>
+                <i class="ph ph-list menu-toggle" id="menu-toggle"></i>
+            </div>
+            
+            <nav class="sidebar-nav">
+
+                
+                <div class="nav-group" id="group-seguridad">
+                    <a href="#" class="nav-item active-group" id="btn-seguridad">
+                        <i class="ph-fill ph-user"></i>
+                        <span>Seguridad</span>
+                        <i class="ph ph-caret-down ml-auto"></i>
+                    </a>
+                    <div class="nav-subgroup" id="subgroup-seguridad">
+                        <a href="dashboard.html" class="nav-subitem">Usuarios</a>
+                        <a href="perfil.html" class="nav-subitem active">Mi Perfil</a>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item active" id="nav-mi-perfil-vendedor" style="display: none;">
+                    <i class="ph-fill ph-user-circle"></i>
+                    <span>Mi Perfil</span>
+                </a>
+
+
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-cube"></i>
+                    <span>Productos</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span>Ventas</span>
+                    <i class="ph ph-caret-right ml-auto"></i>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-users"></i>
+                    <span>Clientes</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-shopping-cart"></i>
+                    <span>Compras</span>
+                    <i class="ph ph-caret-right ml-auto"></i>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-truck"></i>
+                    <span>Proveedores</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-money"></i>
+                    <span>Ganancias</span>
+                    <i class="ph ph-caret-right ml-auto"></i>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span>Boletas</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-file-text"></i>
+                    <span>Facturas</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <h1 class="page-title">MI PERFIL</h1>
+                <div class="user-profile" onclick="document.getElementById('user-dropdown').classList.toggle('show')">
+                    <div class="avatar">
+                        <img src="https://ui-avatars.com/api/?name=Lenin+Alvarez&background=random" alt="Avatar">
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">Lenin Alvarez</span>
+                        <span class="user-role">Administrador</span>
+                    </div>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div id="profile-switcher-container" style="display: none; border-bottom: 1px solid #eee; margin-bottom: 5px; padding-bottom: 5px;">
+                            <!-- Botones de cambio de perfil generados dinámicamente -->
+                        </div>
+                        <button onclick="cerrarSesion()">
+                            <i class="ph ph-sign-out"></i> Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Area: Profile -->
+            <div class="dashboard-area">
+                
+                <div class="profile-container">
+                    <!-- Left Card: User Info -->
+                    <div class="profile-card-left">
+                        <img src="https://ui-avatars.com/api/?name=User&background=random&size=200" alt="Avatar" class="profile-avatar-large" id="profile-avatar">
+                        
+                        <div class="profile-info-grid">
+                            <span class="profile-info-label">Correo:</span>
+                            <span class="profile-info-value" id="profile-email-lbl">---</span>
+                            
+                            <span class="profile-info-label">Teléfono:</span>
+                            <span class="profile-info-value" id="profile-phone-lbl">---</span>
+                            
+                            <span class="profile-info-label">Dni:</span>
+                            <span class="profile-info-value" id="profile-dni-lbl">---</span>
+                            
+                            <span class="profile-info-label">Rol:</span>
+                            <span class="profile-info-value" id="profile-role-lbl">---</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Card: Forms with Tabs -->
+                    <div class="profile-card-right">
+                        <div class="profile-tabs">
+                            <div class="profile-tab active" id="tab-personal">Datos personales</div>
+                            <div class="profile-tab" id="tab-password">Contraseña</div>
+                        </div>
+                        
+                        <!-- Tab 1: Datos Personales -->
+                        <div class="tab-pane active profile-form-content" id="pane-personal">
+                            <div class="form-group">
+                                <label>Nombres y Apellidos</label>
+                                <div class="form-control-readonly" id="profile-names-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Usuario</label>
+                                <div class="form-control-readonly" id="profile-username-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Dni</label>
+                                <div class="form-control-readonly" id="profile-dni-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Telefono</label>
+                                <div class="form-control-readonly" id="profile-phone-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Sexo</label>
+                                <div class="form-control-readonly" id="profile-gender-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Local/sede</label>
+                                <div class="form-control-readonly" id="profile-location-val">---</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab 2: Contraseña -->
+                        <div class="tab-pane profile-form-content single-column" id="pane-password">
+                            <div class="form-group">
+                                <label>Nueva contraseña</label>
+                                <input type="password" id="profile-new-password" placeholder="">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirmar contraseña</label>
+                                <input type="password" id="profile-confirm-password" placeholder="">
+                            </div>
+                            <div class="profile-actions" style="margin-top: 20px;">
+                                <!-- Save Button -->
+                                <button class="btn-save" onclick="guardarPerfil(this)">Guardar cambios</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
+
+    <script src="dashboard.js?v=8"></script>
+</body>
+</html>

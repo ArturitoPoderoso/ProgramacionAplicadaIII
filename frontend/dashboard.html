@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Ferretería Jessmi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="dashboard.css?v=3">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="ph-fill ph-gear sidebar-logo-icon"></i>
+                <div class="sidebar-brand">
+                    <span>Ferretería</span>
+                    <span>JESSMI</span>
+                </div>
+                <i class="ph ph-list menu-toggle" id="menu-toggle"></i>
+            </div>
+            
+            <nav class="sidebar-nav">
+
+                
+                <div class="nav-group" id="group-seguridad">
+                    <a href="#" class="nav-item active-group" id="btn-seguridad">
+                        <i class="ph-fill ph-user"></i>
+                        <span>Seguridad</span>
+                        <i class="ph ph-caret-down ml-auto"></i>
+                    </a>
+                    <div class="nav-subgroup" id="subgroup-seguridad">
+                        <a href="dashboard.html" class="nav-subitem active">Usuarios</a>
+                        <a href="perfil.html" class="nav-subitem">Mi Perfil</a>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item" id="nav-mi-perfil-vendedor" style="display: none;">
+                    <i class="ph-fill ph-user-circle"></i>
+                    <span>Mi Perfil</span>
+                </a>
+
+
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-cube"></i>
+                    <span>Productos</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span>Ventas</span>
+                    <i class="ph ph-caret-right ml-auto"></i>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-users"></i>
+                    <span>Clientes</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-shopping-cart"></i>
+                    <span>Compras</span>
+                    <i class="ph ph-caret-right ml-auto"></i>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-truck"></i>
+                    <span>Proveedores</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-money"></i>
+                    <span>Ganancias</span>
+                    <i class="ph ph-caret-right ml-auto"></i>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span>Boletas</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="ph-fill ph-file-text"></i>
+                    <span>Facturas</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <h1 class="page-title">GESTIÓN DE USUARIOS</h1>
+                <div class="user-profile" onclick="document.getElementById('user-dropdown').classList.toggle('show')">
+                    <div class="avatar">
+                        <img src="https://ui-avatars.com/api/?name=Lenin+Alvarez&background=random" alt="Avatar">
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">Lenin Alvarez</span>
+                        <span class="user-role">Administrador</span>
+                    </div>
+                    
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div id="profile-switcher-container" style="display: none; border-bottom: 1px solid #eee; margin-bottom: 5px; padding-bottom: 5px;">
+                            <!-- Botones de cambio de perfil generados dinámicamente -->
+                        </div>
+                        <button onclick="cerrarSesion()">
+                            <i class="ph ph-sign-out"></i> Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-area">
+                
+                <div class="actions-bar">
+                    <div class="action-buttons">
+                        <button class="btn-action" onclick="abrirModalCrear()">
+                            <i class="ph ph-user-plus"></i>
+                            Crear Usuario
+                        </button>
+                    </div>
+                    
+                    <div class="search-and-filter">
+                        <div class="search-box">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="search-input" placeholder="Buscar por usuario o ID">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>USUARIO</th>
+                                <th>ROL</th>
+                                <th>Local/Sede</th>
+                                <th>ULTIMO ACCESO</th>
+                                <th>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            <!-- Filas generadas dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="modal-crear-usuario">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="modal-crear-usuario-title">Crear Nuevo Usuario</h3>
+                <button class="modal-close" onclick="closeModal('modal-crear-usuario')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group">
+                    <label>Nombres</label>
+                    <input type="text" id="new-user-first-name" placeholder="Ej: Juan Pablo">
+                </div>
+                <div class="form-group">
+                    <label>Apellidos</label>
+                    <input type="text" id="new-user-last-name" placeholder="Ej: Perez">
+                </div>
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="new-user-name" placeholder="Ej: Juan.p">
+                </div>
+                <div class="form-group">
+                    <label>Correo</label>
+                    <input type="email" id="new-user-email" placeholder="Ej: juan@jesmi.com">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" id="new-user-phone" placeholder="Ej: 999888777">
+                </div>
+                <div class="form-group">
+                    <label>DNI</label>
+                    <input type="text" id="new-user-dni" placeholder="Ej: 71234567">
+                </div>
+                <div class="form-group">
+                    <label>Sexo</label>
+                    <select class="form-select" id="new-user-gender">
+                        <option value="Masculino">Masculino</option>
+                        <option value="Femenino">Femenino</option>
+                    </select>
+                </div>
+                <div class="form-group" id="roles-checkbox-group">
+                    <label>Roles (Puedes seleccionar varios)</label>
+                    <div style="display: flex; gap: 10px; margin-top: 5px; font-size: 14px;">
+                        <label style="display:flex; align-items:center; gap:5px; font-weight:normal;">
+                            <input type="checkbox" name="user_roles" value="Administrador"> Administrador
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; font-weight:normal;">
+                            <input type="checkbox" name="user_roles" value="Supervisor"> Supervisor
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; font-weight:normal;">
+                            <input type="checkbox" name="user_roles" value="Vendedor"> Vendedor
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Local/Sede</label>
+                    <select class="form-select" id="new-user-location">
+                        <option value="SJL">SJL</option>
+                        <option value="Los Olivos">Los Olivos</option>
+                        <option value="OLIVOS">OLIVOS</option>
+                        <option value="INDEPENDENCIA">INDEPENDENCIA</option>
+                        <option value="CARABAYLLO">CARABAYLLO</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-crear-usuario')">Cancelar</button>
+                <button class="btn-save" style="position:static" onclick="crearUsuario()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-accion">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="modal-accion-title">Acción</h3>
+                <button class="modal-close" onclick="closeModal('modal-accion')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Por ahora esto es una simulación visual. Cuando conectemos el backend, esta acción se procesará correctamente.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-accion')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-eliminar">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Eliminar Usuario</h3>
+                <button class="modal-close" onclick="closeModal('modal-eliminar')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas eliminar a este usuario?</p>
+                <input type="hidden" id="delete-user-id">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-eliminar')">Cancelar</button>
+                <button class="btn-save" style="background-color: #E53935; position:static" onclick="eliminarUsuarioConfirmado()">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js?v=8"></script>
+</body>
+</html>

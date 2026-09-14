@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ferretería Jessmi - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="top-bar"></div>
+    <div class="login-container">
+        <header class="login-header">
+            <div class="logo-placeholder">
+                <i class="ph ph-hammer"></i>
+            </div>
+            <h2 class="company-name">Ferretería Jessmi</h2>
+            <h1>Bienvenido</h1>
+            <p>Ingresa tus datos para continuar</p>
+        </header>
+
+        <form id="login-form" class="login-form">
+            <div class="input-group">
+                <label for="dni">DNI</label>
+                <div class="input-wrapper">
+                    <i class="ph ph-identification-card input-icon"></i>
+                    <input type="text" id="dni" name="dni" placeholder="DNI" required autocomplete="off">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="password">CONTRASEÑA</label>
+                <div class="input-wrapper">
+                    <i class="ph ph-lock-key input-icon"></i>
+                    <input type="password" id="password" name="password" placeholder="******" required>
+                    <button type="button" id="toggle-password" class="toggle-password-btn"
+                        aria-label="Mostrar contraseña">
+                        <i class="ph ph-eye" id="eye-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">Iniciar Sesión</button>
+        </form>
+
+
+    </div>
+
+    <script src="app.js?v=2"></script>
+</body>
+
+</html>
