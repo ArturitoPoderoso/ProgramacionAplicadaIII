@@ -24,9 +24,8 @@
             </div>
             
             <nav class="sidebar-nav">
-
                 
-                <div class="nav-group" id="group-seguridad">
+                <div class="nav-group" id="nav-seguridad">
                     <a href="#" class="nav-item active-group" id="btn-seguridad">
                         <i class="ph-fill ph-user"></i>
                         <span>Seguridad</span>
@@ -43,46 +42,45 @@
                     <span>Mi Perfil</span>
                 </a>
 
-
-                <a href="#" onclick="showSection('section-productos')" class="nav-item">
+                <a href="#" onclick="showSection('section-productos')" class="nav-item" id="nav-productos">
                     <i class="ph-fill ph-cube"></i>
                     <span>Productos</span>
                 </a>
                 
-                <a href="#" onclick="showSection('section-ventas')" class="nav-item">
+                <a href="#" onclick="showSection('section-ventas')" class="nav-item" id="nav-ventas">
                     <i class="ph-fill ph-chart-line-up"></i>
                     <span>Ventas</span>
                     <i class="ph ph-caret-right ml-auto"></i>
                 </a>
                 
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" id="nav-clientes">
                     <i class="ph-fill ph-users"></i>
                     <span>Clientes</span>
                 </a>
                 
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" id="nav-compras">
                     <i class="ph-fill ph-shopping-cart"></i>
                     <span>Compras</span>
                     <i class="ph ph-caret-right ml-auto"></i>
                 </a>
                 
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" id="nav-proveedores">
                     <i class="ph-fill ph-truck"></i>
                     <span>Proveedores</span>
                 </a>
                 
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" id="nav-ganancias">
                     <i class="ph-fill ph-money"></i>
                     <span>Ganancias</span>
                     <i class="ph ph-caret-right ml-auto"></i>
                 </a>
                 
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" id="nav-boletas">
                     <i class="ph-fill ph-receipt"></i>
                     <span>Boletas</span>
                 </a>
                 
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" id="nav-facturas">
                     <i class="ph-fill ph-file-text"></i>
                     <span>Facturas</span>
                 </a>
@@ -241,7 +239,7 @@
             <div class="dashboard-area">
                 <div class="actions-bar">
                     <div class="action-buttons">
-                        <button class="btn-action" onclick="abrirModalCrearProducto()">
+                        <button class="btn-action" id="btn-nuevo-producto" onclick="abrirModalCrearProducto()">
                             <i class="ph ph-plus"></i>
                             Nuevo Producto
                         </button>
@@ -549,15 +547,22 @@
             const u = JSON.parse(localStorage.getItem('user')) || {};
             const role = u.activeRole || u.role;
             if (role === 'Vendedor' && sectionId === 'section-usuarios') {
-                showSection('section-perfil');
+                showSection('section-ventas');
             }
         }
         
         document.addEventListener('DOMContentLoaded', () => {
             const u = JSON.parse(localStorage.getItem('user')) || {};
-            const role = u.activeRole || u.role;
+            const role = u.activeRole || u.role || 'Administrador';
+            
+            if (typeof aplicarReglasVisibilidadNavegacion === 'function') {
+                aplicarReglasVisibilidadNavegacion(role);
+            }
+
             if (role === 'Vendedor') {
-                showSection('section-perfil');
+                showSection('section-ventas');
+            } else if (role === 'Supervisor') {
+                showSection('section-productos');
             } else {
                 showSection('section-usuarios');
             }

@@ -517,10 +517,71 @@ async function guardarPerfil(btnElement) {
     btnElement.disabled = false;
 }
 
+function aplicarReglasVisibilidadNavegacion(role) {
+    const elSeguridad = document.getElementById('nav-seguridad');
+    const elPerfilVendedor = document.getElementById('nav-mi-perfil-vendedor');
+    const elProductos = document.getElementById('nav-productos');
+    const elVentas = document.getElementById('nav-ventas');
+    const elClientes = document.getElementById('nav-clientes');
+    const elCompras = document.getElementById('nav-compras');
+    const elProveedores = document.getElementById('nav-proveedores');
+    const elGanancias = document.getElementById('nav-ganancias');
+    const elBoletas = document.getElementById('nav-boletas');
+    const elFacturas = document.getElementById('nav-facturas');
+    const btnNuevoProd = document.getElementById('btn-nuevo-producto');
+
+    if (role === 'Vendedor') {
+        if (elSeguridad) elSeguridad.style.display = 'none';
+        if (elPerfilVendedor) elPerfilVendedor.style.display = 'flex';
+        if (elVentas) elVentas.style.display = 'flex';
+        if (elProductos) elProductos.style.display = 'flex';
+        if (elClientes) elClientes.style.display = 'flex';
+        if (elBoletas) elBoletas.style.display = 'flex';
+        if (elFacturas) elFacturas.style.display = 'flex';
+
+        if (elCompras) elCompras.style.display = 'none';
+        if (elProveedores) elProveedores.style.display = 'none';
+        if (elGanancias) elGanancias.style.display = 'none';
+        if (btnNuevoProd) btnNuevoProd.style.display = 'none';
+
+    } else if (role === 'Supervisor') {
+        if (elSeguridad) elSeguridad.style.display = 'block';
+        if (elPerfilVendedor) elPerfilVendedor.style.display = 'none';
+        if (elProductos) elProductos.style.display = 'flex';
+        if (elCompras) elCompras.style.display = 'flex';
+        if (elProveedores) elProveedores.style.display = 'flex';
+        if (elClientes) elClientes.style.display = 'flex';
+        if (elBoletas) elBoletas.style.display = 'flex';
+        if (elFacturas) elFacturas.style.display = 'flex';
+
+        if (elVentas) elVentas.style.display = 'none';
+        if (elGanancias) elGanancias.style.display = 'none';
+        if (btnNuevoProd) btnNuevoProd.style.display = 'inline-flex';
+
+    } else {
+        // Administrador
+        if (elSeguridad) elSeguridad.style.display = 'block';
+        if (elPerfilVendedor) elPerfilVendedor.style.display = 'none';
+        if (elProductos) elProductos.style.display = 'flex';
+        if (elCompras) elCompras.style.display = 'flex';
+        if (elProveedores) elProveedores.style.display = 'flex';
+        if (elClientes) elClientes.style.display = 'flex';
+        if (elGanancias) elGanancias.style.display = 'flex';
+        if (elBoletas) elBoletas.style.display = 'flex';
+        if (elFacturas) elFacturas.style.display = 'flex';
+
+        if (elVentas) elVentas.style.display = 'none';
+        if (btnNuevoProd) btnNuevoProd.style.display = 'inline-flex';
+    }
+}
+
 // Check role on load
 document.addEventListener('DOMContentLoaded', () => {
     const currentUser = JSON.parse(localStorage.getItem('user')) || {};
     const currentRole = currentUser.activeRole || currentUser.role || 'Administrador';
+
+    // Aplicar reglas de visibilidad al menú lateral
+    aplicarReglasVisibilidadNavegacion(currentRole);
 
     // Actualizar nombre y rol activo en el topbar
     const nameEl = document.getElementById('display-username');
@@ -533,20 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (avatarEl) {
         const nameForAvatar = encodeURIComponent(currentUser.first_name || currentUser.username || 'User') + '+' + encodeURIComponent(currentUser.last_name || '');
         avatarEl.src = `https://ui-avatars.com/api/?name=${nameForAvatar}&background=random`;
-    }
-
-    if (currentRole === 'Vendedor') {
-        // Ocultar grupo Seguridad y mostrar Mi Perfil suelto para Vendedores
-        const groupSeguridad = document.getElementById('group-seguridad');
-        if (groupSeguridad) groupSeguridad.style.display = 'none';
-        
-        const navMiPerfil = document.getElementById('nav-mi-perfil-vendedor');
-        if (navMiPerfil) navMiPerfil.style.display = 'flex';
-        
-        const tbody = document.getElementById('users-tbody');
-        if (tbody) {
-            document.querySelector('.dashboard-area').innerHTML = '<h2>Acceso Denegado</h2><p>Redirigiendo...</p>';
-        }
     }
 
     // Funcionalidad de Búsqueda
