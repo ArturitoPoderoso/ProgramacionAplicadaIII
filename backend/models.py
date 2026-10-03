@@ -78,6 +78,7 @@ class Categoria(Base):
     id_categoria = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, unique=True, nullable=False)
     descripcion = Column(String)
+    id_padre = Column(Integer, ForeignKey('categorias.id_categoria', ondelete="CASCADE"), nullable=True)
     estado_registro = Column(Integer, default=1)
 
     productos = relationship("Producto", back_populates="categoria")
@@ -133,6 +134,7 @@ class Venta(Base):
     correlativo = Column(String, unique=True, index=True, nullable=False)
     fecha_venta = Column(DateTime(timezone=True), server_default=func.now())
     total = Column(Float, nullable=False)
+    descuento_total = Column(Float, default=0.0)
     metodo_pago = Column(String, nullable=False) # Efectivo, Tarjeta, Yape
     id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'))
     id_sede = Column(Integer, ForeignKey('sedes.id_sede'))
@@ -149,7 +151,40 @@ class DetalleVenta(Base):
     id_producto = Column(Integer, ForeignKey('productos.id_producto'))
     cantidad = Column(Integer, nullable=False)
     precio_unitario = Column(Float, nullable=False)
+    descuento_unitario = Column(Float, default=0.0)
     subtotal = Column(Float, nullable=False)
 
     venta = relationship("Venta", back_populates="detalles")
     producto = relationship("Producto", back_populates="detalles_venta")
+
+# --- Módulo de Proformas / Cotizaciones ---
+
+class Proforma(Base):
+    __tablename__ = "proformas"
+    id_proforma = Column(Integer, primary_key=True, index=True)
+    correlativo = Column(String, unique=True, index=True, nullable=False)
+    fecha_emision = Column(DateTime(timezone=True), server_default=func.now())
+    validez_dias = Column(Integer, default=7)
+    cliente_nombre = Column(String, default="Cliente General")
+    cliente_doc = Column(String, default="")
+    total = Column(Float, nullable=False)
+    id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'))
+    id_sede = Column(Integer, ForeignKey('sedes.id_sede'))
+    estado_registro = Column(Integer, default=1)
+
+    usuario = relationship("User")
+    sede = relationship("Sede")
+    detalles = relationship("DetalleProforma", back_populates="proforma")
+
+class DetalleProforma(Base):
+    __tablename__ = "detalle_proformas"
+    id_detalle_proforma = Column(Integer, primary_key=True, index=True)
+    id_proforma = Column(Integer, ForeignKey('proformas.id_proforma', ondelete="CASCADE"))
+    id_producto = Column(Integer, ForeignKey('productos.id_producto'))
+    cantidad = Column(Integer, nullable=False)
+    precio_unitario = Column(Float, nullable=False)
+    subtotal = Column(Float, nullable=False)
+
+    proforma = relationship("Proforma", back_populates="detalles")
+    producto = relationship("Producto")
+

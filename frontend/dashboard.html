@@ -49,8 +49,17 @@
                 
                 <a href="#" onclick="showSection('section-ventas')" class="nav-item" id="nav-ventas">
                     <i class="ph-fill ph-chart-line-up"></i>
-                    <span>Ventas</span>
-                    <i class="ph ph-caret-right ml-auto"></i>
+                    <span>Caja / Ventas</span>
+                </a>
+
+                <a href="#" onclick="showSection('section-proformas')" class="nav-item" id="nav-proformas" style="display: none;">
+                    <i class="ph-fill ph-file-text"></i>
+                    <span>Cotizaciones / Proformas</span>
+                </a>
+
+                <a href="#" onclick="showSection('section-historial-ventas')" class="nav-item" id="nav-historial-ventas" style="display: none;">
+                    <i class="ph-fill ph-clock-counter-clockwise"></i>
+                    <span>Historial de Ventas</span>
                 </a>
                 
                 <a href="#" class="nav-item" id="nav-clientes">
@@ -108,7 +117,7 @@
                 </div>
             </header>
 
-<div id="section-usuarios" class="app-section" style="display:block;">
+<div id="section-usuarios" class="app-section" style="display:none;">
             <!-- Topbar -->
             
 
@@ -238,7 +247,7 @@
 
             <div class="dashboard-area">
                 <div class="actions-bar">
-                    <div class="action-buttons">
+                    <div class="action-buttons" style="display: flex; gap: 10px;">
                         <button class="btn-action" id="btn-nuevo-producto" onclick="abrirModalCrearProducto()">
                             <i class="ph ph-plus"></i>
                             Nuevo Producto
@@ -260,6 +269,7 @@
                                 <th>CÓDIGO</th>
                                 <th>PRODUCTO</th>
                                 <th>CATEGORÍA</th>
+                                <th>SUBCATEGORÍA</th>
                                 <th>STOCK</th>
                                 <th>MIN.</th>
                                 <th>P. COMPRA</th>
@@ -319,7 +329,7 @@
                                     <input type="text" id="pos-cliente-doc" placeholder="----------------" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;">
                                 </div>
                             </div>
-                            <div class="form-group" style="margin-bottom: 6px;">
+                            <div class="form-group" style="margin-bottom: 8px;">
                                 <label style="font-size: 0.76rem; font-weight: 700;">Método de Pago</label>
                                 <select class="form-select" id="metodo-pago" style="padding: 6px 8px; font-size: 0.85rem; border-radius: 6px;">
                                     <option value="Efectivo">Efectivo</option>
@@ -327,17 +337,246 @@
                                     <option value="Yape/Plin">Yape / Plin</option>
                                 </select>
                             </div>
-                            <div class="total-row">
-                                <span>TOTAL:</span>
-                                <span id="cart-total">S/ 0.00</span>
+
+                            <!-- Bloque de Descuento Promocional -->
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-size: 0.78rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 4px;">
+                                        <i class="ph-fill ph-tag" style="color: #2563eb;"></i> Descuento / Promoción
+                                    </span>
+                                    <select id="pos-tipo-descuento" onchange="renderCarrito()" style="padding: 2px 6px; font-size: 0.75rem; border-radius: 4px; border: 1px solid #cbd5e1; outline: none;">
+                                        <option value="S/">Soles (S/)</option>
+                                        <option value="%">Porcentaje (%)</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="number" min="0" step="any" id="pos-descuento-val" oninput="renderCarrito()" placeholder="0.00" style="flex: 1; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; font-weight: 600; outline: none;">
+                                    <span id="pos-descuento-monto-lbl" style="font-size: 0.85rem; font-weight: 700; color: #dc2626;">-S/ 0.00</span>
+                                </div>
+                                <div id="pos-descuento-error-msg" style="font-size: 0.72rem; color: #dc2626; font-weight: 600; margin-top: 6px; display: none; line-height: 1.3;"></div>
                             </div>
-                            <button class="btn-save btn-cobrar" onclick="procesarVenta()">Cobrar</button>
+
+                            <!-- Desglose de Totales -->
+                            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; margin-bottom: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; color: #64748b;">
+                                    <span>Subtotal:</span>
+                                    <span id="cart-subtotal" style="font-weight: 600;">S/ 0.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; color: #dc2626; display: none;" id="cart-descuento-row">
+                                    <span>Descuento Total:</span>
+                                    <span id="cart-descuento-lbl" style="font-weight: 700;">-S/ 0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="total-row">
+                                <span>TOTAL A PAGAR:</span>
+                                <span id="cart-total" style="color: #16a34a; font-weight: 800;">S/ 0.00</span>
+                            </div>
+
+                            <button class="btn-save" id="btn-procesar-venta" style="position: static; width: 100%; margin-top: 12px; background: #16a34a; font-size: 1rem; padding: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; cursor: pointer;" onclick="procesarVenta()">
+                                <i class="ph-bold ph-check-circle" style="font-size: 1.25rem;"></i> Procesar Venta
+                            </button>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
+
+<div id="section-historial-ventas" class="app-section" style="display:none;">
+    <div class="dashboard-area">
+        <!-- KPI Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div style="background: white; border-radius: 10px; padding: 18px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 15px;">
+                <div style="width: 48px; height: 48px; border-radius: 10px; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="ph-fill ph-currency-dollar"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.82rem; color: #6b7280; font-weight: 500;">TOTAL RECAUDADO</div>
+                    <div id="kpi-historial-monto" style="font-size: 1.35rem; font-weight: 700; color: #111827;">S/ 0.00</div>
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 10px; padding: 18px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 15px;">
+                <div style="width: 48px; height: 48px; border-radius: 10px; background: #f3e8ff; color: #a855f7; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="ph-fill ph-receipt"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.82rem; color: #6b7280; font-weight: 500;">N° COMPROBANTES</div>
+                    <div id="kpi-historial-comprobantes" style="font-size: 1.35rem; font-weight: 700; color: #111827;">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="actions-bar" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: white; padding: 15px; border-radius: 10px; border: 1px solid #e5e7eb;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <div class="search-box" style="min-width: 240px; margin: 0;">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" id="historial-search-input" placeholder="Buscar ticket o vendedor..." oninput="filtrarHistorialVentasLocal()">
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-size: 0.85rem; color: #6b7280; font-weight: 500;">Desde:</label>
+                    <input type="date" id="historial-fecha-inicio" class="form-select" style="padding: 6px 10px;" onchange="cargarHistorialVentas()">
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-size: 0.85rem; color: #6b7280; font-weight: 500;">Hasta:</label>
+                    <input type="date" id="historial-fecha-fin" class="form-select" style="padding: 6px 10px;" onchange="cargarHistorialVentas()">
+                </div>
+                <select id="historial-sede-select" class="form-select" style="padding: 6px 10px; min-width: 150px;" onchange="cargarHistorialVentas()">
+                    <option value="">Todas las Sedes</option>
+                </select>
+            </div>
+            <button class="btn-action" style="background: #f3f4f6; color: #374151; border-color: #d1d5db;" onclick="limpiarFiltrosHistorial()">
+                <i class="ph ph-arrow-counter-clockwise"></i> Limpiar Filtros
+            </button>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container" style="margin-top: 15px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>CORRELATIVO</th>
+                        <th>FECHA Y HORA</th>
+                        <th>EMPLEADO</th>
+                        <th>SEDE</th>
+                        <th>MÉTODO PAGO</th>
+                        <th>UNIDADES</th>
+                        <th>TOTAL (S/)</th>
+                        <th style="text-align: center;">ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody id="historial-ventas-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="section-proformas" class="app-section" style="display:none;">
+    <div class="dashboard-area">
+
+        <!-- Grid Principal (2 Columnas) -->
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; margin-bottom: 30px;">
+            
+            <!-- Columna Izquierda: Catálogo y Búsqueda de Productos -->
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <i class="ph-fill ph-magnifying-glass" style="color: #2563eb;"></i> Buscar Productos
+                    </h3>
+                    <span style="font-size: 0.8rem; background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 20px; font-weight: 600;">
+                        Precios de Venta Vigentes
+                    </span>
+                </div>
+
+                <!-- Input Búsqueda -->
+                <div style="position: relative; margin-bottom: 16px;">
+                    <i class="ph ph-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem;"></i>
+                    <input type="text" id="proforma-search-prod" onkeyup="filtrarProductosProforma()" placeholder="Buscar por código o nombre de producto..." style="width: 100%; padding: 10px 14px 10px 42px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; outline: none;">
+                </div>
+
+                <!-- Lista de Productos -->
+                <div id="proforma-lista-productos" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                    <!-- Renderizado dinámico -->
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Detalle de Cotización / Carrito Proforma -->
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 16px;">
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin: 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+                    <i class="ph-fill ph-shopping-cart-simple" style="color: #16a34a;"></i> Resumen de Cotización
+                </h3>
+
+                <!-- Datos del Cliente & Validez -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Cliente / Empresa</label>
+                        <input type="text" id="proforma-cliente-nombre" placeholder="Ej: Constructora San Martín" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">DNI / RUC (Opcional)</label>
+                        <input type="text" id="proforma-cliente-doc" placeholder="Ej: 20601234567" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Validez de Oferta</label>
+                    <select id="proforma-validez" class="form-select" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border-radius: 6px;">
+                        <option value="3">3 Días</option>
+                        <option value="7" selected>7 Días (Recomendado)</option>
+                        <option value="15">15 Días</option>
+                        <option value="30">30 Días</option>
+                    </select>
+                </div>
+
+                <!-- Tabla Carrito Cotización -->
+                <div style="border: 1px solid #f1f5f9; border-radius: 8px; overflow: hidden; max-height: 220px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                        <thead style="background: #f8fafc; color: #64748b; font-weight: 600; text-align: left;">
+                            <tr>
+                                <th style="padding: 8px 10px;">PRODUCTO</th>
+                                <th style="padding: 8px 6px; text-align: center; width: 70px;">CANT.</th>
+                                <th style="padding: 8px 6px; text-align: right; width: 75px;">P.UNIT</th>
+                                <th style="padding: 8px 6px; text-align: right; width: 80px;">SUBTOTAL</th>
+                                <th style="padding: 8px 6px; text-align: center; width: 35px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="proforma-cart-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 25px; color: #94a3b8; font-style: italic;">
+                                    No hay productos en la cotización. Selecciona del panel izquierdo.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Total Recuadro -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.95rem; font-weight: 700; color: #334155;">TOTAL COTIZADO:</span>
+                    <span id="proforma-cart-total" style="font-size: 1.4rem; font-weight: 800; color: #16a34a;">S/ 0.00</span>
+                </div>
+
+                <!-- Botón Acción Principal -->
+                <button onclick="generarEImprimirProforma()" class="btn-save" style="position: static; width: 100%; background: linear-gradient(135deg, #16a34a, #15803d); color: white; font-weight: 700; padding: 12px; font-size: 0.95rem; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25); border: none; cursor: pointer; transition: all 0.2s;">
+                    <i class="ph-fill ph-printer" style="font-size: 1.2rem;"></i> Generar e Imprimir Proforma
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabla Historial de Proformas Emitidas -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-clock-counter-clockwise" style="color: #6366f1;"></i> Cotizaciones Emitidas Recientemente
+                </h3>
+                <input type="text" id="proformas-historial-search" onkeyup="cargarProformasEmitidas()" placeholder="Buscar cotización..." style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; width: 220px;">
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; font-size: 0.82rem; text-align: left;">
+                            <th>PROFORMA N°</th>
+                            <th>FECHA Y HORA</th>
+                            <th>CLIENTE</th>
+                            <th>VALIDEZ</th>
+                            <th>SEDE</th>
+                            <th>EMITIDO POR</th>
+                            <th>TOTAL (S/)</th>
+                            <th style="text-align: center;">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="proformas-historial-tbody">
+                        <!-- Carga dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
 </main>
     </div>
 
@@ -356,17 +595,23 @@
                 </div>
                 <div class="form-group">
                     <label>Nombre del Producto</label>
-                    <input type="text" id="new-prod-nombre" placeholder="Ej: Martillo">
-                </div>
-                <div class="form-group">
-                    <label>Categoría</label>
-                    <select class="form-select" id="new-prod-categoria">
-                        <option value="">Seleccione...</option>
-                    </select>
+                    <input type="text" id="new-prod-nombre" placeholder="Ej: Martillo de Uña 16oz">
                 </div>
                 <div class="form-group">
                     <label>Descripción</label>
-                    <input type="text" id="new-prod-desc">
+                    <input type="text" id="new-prod-desc" placeholder="Ej: Mango de madera con cabeza de acero">
+                </div>
+                <div class="form-group">
+                    <label>Categoría Principal</label>
+                    <select class="form-select" id="new-prod-categoria-padre" onchange="onCategoriaPadreChange()">
+                        <option value="">Seleccione Categoría...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subcategoría</label>
+                    <select class="form-select" id="new-prod-subcategoria">
+                        <option value="">Ninguna / General</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Precio Compra</label>
@@ -378,13 +623,48 @@
                 </div>
                 
                 <div class="form-group">
+                    <label>Stock Inicial (Unidades)</label>
+                    <input type="number" id="new-prod-stock" value="10">
+                </div>
+                <div class="form-group">
                     <label>Stock Mínimo (Alerta)</label>
-                    <input type="number" id="new-prod-minimo" value="0">
+                    <input type="number" id="new-prod-minimo" value="5">
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal('modal-crear-producto')">Cancelar</button>
                 <button class="btn-save" style="position:static" onclick="crearProducto()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Crear Categoría / Subcategoría -->
+    <div class="modal-overlay" id="modal-crear-categoria">
+        <div class="modal-container" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3 id="modal-crear-categoria-title">Nueva Categoría / Subcategoría</h3>
+                <button class="modal-close" onclick="closeModal('modal-crear-categoria')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="hidden" id="edit-cat-id">
+                <div class="form-group">
+                    <label>Nombre de Categoría <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="new-cat-nombre" placeholder="Ej: Herramientas Manuales">
+                </div>
+                <div class="form-group">
+                    <label>Categoría Padre (Opcional para Subcategoría)</label>
+                    <select class="form-select" id="new-cat-padre">
+                        <option value="">Ninguna (Categoría Principal)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input type="text" id="new-cat-desc" placeholder="Ej: Martillos, alicates, destornilladores">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-crear-categoria')">Cancelar</button>
+                <button class="btn-save" style="position:static; background: #f59e0b;" onclick="guardarCategoria()">Guardar Categoría</button>
             </div>
         </div>
     </div>
@@ -515,39 +795,63 @@
     </div>
 
     
-    <script src="dashboard.js?v=9"></script>
+    <script src="dashboard.js?v=20261003_1420"></script>
     <script src="almacen.js?v=4"></script>
-    <script src="caja.js?v=4"></script>
+    <script src="caja.js?v=5"></script>
     <script>
         function showSection(sectionId) {
-            if (sectionId === 'section-productos') {
-                if (typeof cargarProductosAlmacen === 'function') cargarProductosAlmacen();
+            const u = JSON.parse(localStorage.getItem('user')) || {};
+            const role = u.activeRole || u.role || 'Vendedor';
+
+            // Redirección segura según permisos de rol
+            if (role === 'Vendedor' && (sectionId === 'section-usuarios' || sectionId === 'section-historial-ventas')) {
+                sectionId = 'section-ventas';
             }
-            if (sectionId === 'section-ventas') {
-                if (typeof cargarProductosCaja === 'function') cargarProductosCaja();
+            if (role !== 'Vendedor' && sectionId === 'section-proformas') {
+                sectionId = (role === 'Supervisor') ? 'section-productos' : 'section-usuarios';
             }
+
+            const targetEl = document.getElementById(sectionId);
+            if (!targetEl) return;
+
+            // 1. Ocultar TODAS las secciones inmediatamente
             document.querySelectorAll('.app-section').forEach(el => el.style.display = 'none');
-            document.getElementById(sectionId).style.display = 'block';
-            
+
+            // 2. Mostrar la sección solicitada
+            targetEl.style.display = 'block';
+
+            // 3. Título global de la página
             const titles = {
                 'section-usuarios': 'GESTIÓN DE USUARIOS',
                 'section-perfil': 'MI PERFIL',
                 'section-productos': 'ALMACÉN E INVENTARIO',
-                'section-ventas': 'PUNTO DE VENTA (CAJA)'
+                'section-ventas': 'PUNTO DE VENTA (CAJA)',
+                'section-historial-ventas': 'HISTORIAL DE VENTAS',
+                'section-proformas': 'EMISIÓN DE PROFORMAS / COTIZACIONES'
             };
             const titleEl = document.getElementById('global-page-title');
             if (titleEl) {
                 titleEl.textContent = titles[sectionId] || 'SISTEMA JESMI';
             }
 
+            // 4. Marca activa en la barra lateral
             document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
             const clicked = Array.from(document.querySelectorAll('.sidebar-nav .nav-item')).find(el => el.getAttribute('onclick') === `showSection('${sectionId}')`);
             if (clicked) clicked.classList.add('active');
-            
-            const u = JSON.parse(localStorage.getItem('user')) || {};
-            const role = u.activeRole || u.role;
-            if (role === 'Vendedor' && sectionId === 'section-usuarios') {
-                showSection('section-ventas');
+
+            // 5. Carga diferida segura de datos dinámicos
+            try {
+                if (sectionId === 'section-productos' && typeof cargarProductosAlmacen === 'function') {
+                    cargarProductosAlmacen();
+                } else if (sectionId === 'section-ventas' && typeof cargarProductosCaja === 'function') {
+                    cargarProductosCaja();
+                } else if (sectionId === 'section-proformas' && typeof cargarModuloProformas === 'function') {
+                    cargarModuloProformas();
+                } else if (sectionId === 'section-historial-ventas' && typeof cargarHistorialVentas === 'function') {
+                    cargarHistorialVentas();
+                }
+            } catch (err) {
+                console.error("Error al cargar datos del módulo:", err);
             }
         }
         
@@ -568,6 +872,49 @@
             }
         });
     </script>
+
+    <!-- Modal Detalle / Reimpresión de Venta -->
+    <div class="modal-overlay" id="modal-detalle-venta">
+        <div class="modal-container" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3>Comprobante de Venta</h3>
+                <button class="modal-close" onclick="closeModal('modal-detalle-venta')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" id="modal-detalle-venta-body" style="background: #fafafa; padding: 15px;">
+                <!-- Renderizado dinámico de la boleta -->
+            </div>
+            <div class="modal-footer" style="justify-content: space-between;">
+                <button class="btn-secondary" onclick="closeModal('modal-detalle-venta')">Cerrar</button>
+                <button class="btn-save" style="position:static; background: #2563eb;" onclick="imprimirTicketHistorial()">
+                    <i class="ph ph-printer"></i> Imprimir Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Proforma / Cotización Imprimible -->
+    <div class="modal-overlay" id="modal-proforma-printable">
+        <div class="modal-container" style="max-width: 620px; border-radius: 14px; overflow: hidden; padding: 0; background: #f8fafc;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 14px 20px;">
+                <h3 style="color: white; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-file-text" style="color: #38bdf8;"></i> Documento de Proforma / Cotización
+                </h3>
+                <button class="modal-close" style="color: white; opacity: 0.9;" onclick="closeModal('modal-proforma-printable')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: 80vh;">
+                <div id="proforma-document-content" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); font-family: 'Inter', sans-serif; color: #1e293b;">
+                    <!-- Generado dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 14px 20px; background: #ffffff; border-top: 1px solid #e2e8f0;">
+                <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; padding: 8px 16px;" onclick="imprimirDocumentoProforma()"><i class="ph ph-printer"></i> Imprimir Proforma</button>
+                <button class="btn-save" style="position:static; background: #475569; padding: 8px 20px;" onclick="closeModal('modal-proforma-printable')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="historial_ventas.js"></script>
+    <script src="proformas.js?v=1"></script>
 
 </body>
 </html>

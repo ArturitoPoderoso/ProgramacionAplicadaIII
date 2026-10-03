@@ -93,7 +93,9 @@ function agregarAlCarrito(producto) {
             id_producto: producto.id_producto,
             nombre: producto.nombre,
             codigo: producto.codigo_producto,
-            precio_unitario: producto.precio_venta,
+            precio_unitario: parseFloat(producto.precio_venta) || 0,
+            precio_compra: parseFloat(producto.precio_compra) || 0,
+            descuento_unitario: 0,
             cantidad: 1,
             stock_max: producto.stock_actual
         });
@@ -133,6 +135,16 @@ function vaciarCarrito() {
 function renderCarrito() {
     const container = document.getElementById('cart-items');
     const totalEl = document.getElementById('cart-total');
+    const subtotalEl = document.getElementById('cart-subtotal');
+    const descuentoRow = document.getElementById('cart-descuento-row');
+    const descuentoLbl = document.getElementById('cart-descuento-lbl');
+    const descMontoLbl = document.getElementById('pos-descuento-monto-lbl');
+    const errorMsgEl = document.getElementById('pos-descuento-error-msg');
+    const inputDesc = document.getElementById('pos-descuento-val');
+    const tipoDescEl = document.getElementById('pos-tipo-descuento');
+    const btnProcesar = document.getElementById('btn-procesar-venta');
+    const tipoDesc = tipoDescEl ? tipoDescEl.value : 'S/';
+
     if (!container || !totalEl) return;
 
     if (carrito.length === 0) {
@@ -142,27 +154,38 @@ function renderCarrito() {
                 El carrito está vacío
             </div>`;
         totalEl.textContent = 'S/ 0.00';
+        if (subtotalEl) subtotalEl.textContent = 'S/ 0.00';
+        if (descuentoRow) descuentoRow.style.display = 'none';
+        if (descMontoLbl) descMontoLbl.textContent = '-S/ 0.00';
+        if (errorMsgEl) errorMsgEl.style.display = 'none';
+        if (btnProcesar) {
+            btnProcesar.disabled = true;
+            btnProcesar.style.opacity = '0.5';
+            btnProcesar.style.cursor = 'not-allowed';
+        }
         return;
     }
 
     container.innerHTML = '';
-    let total = 0;
+    let subtotalBruto = 0;
 
     carrito.forEach(item => {
-        const subtotal = item.cantidad * item.precio_unitario;
-        total += subtotal;
+        const itemSubtotal = item.cantidad * item.precio_unitario;
+        subtotalBruto += itemSubtotal;
 
         const div = document.createElement('div');
         div.className = 'cart-item';
         div.innerHTML = `
             <div style="flex: 1;">
                 <div class="cart-item-name">${item.nombre}</div>
-                <div class="cart-item-price-unit">S/ ${item.precio_unitario.toFixed(2)} c/u</div>
+                <div class="cart-item-price-unit" style="display:flex; gap:10px; align-items:center; font-size:0.78rem; color:#64748b;">
+                    <span>S/ ${item.precio_unitario.toFixed(2)} c/u</span>
+                </div>
                 <div class="cart-item-qty">
                     <button class="qty-btn" onclick="actualizarCantidad(${item.id_producto}, -1)">-</button>
                     <span style="font-weight:700; min-width: 20px; text-align:center;">${item.cantidad}</span>
                     <button class="qty-btn" onclick="actualizarCantidad(${item.id_producto}, 1)">+</button>
-                    <span style="margin-left:auto; font-weight:800; color: #1e293b;">S/ ${subtotal.toFixed(2)}</span>
+                    <span style="margin-left:auto; font-weight:800; color: #1e293b;">S/ ${itemSubtotal.toFixed(2)}</span>
                 </div>
             </div>
             <button style="border:none; background:none; color:#ef4444; cursor:pointer; padding: 6px 4px 6px 10px; font-size: 1.1rem;" onclick="actualizarCantidad(${item.id_producto}, -999)" title="Eliminar">
@@ -172,7 +195,72 @@ function renderCarrito() {
         container.appendChild(div);
     });
 
-    totalEl.textContent = `S/ ${total.toFixed(2)}`;
+    // Calcular Descuento Global
+    let rawVal = inputDesc ? String(inputDesc.value || '0').replace(',', '.') : '0';
+    let descInputVal = parseFloat(rawVal);
+    if (isNaN(descInputVal) || descInputVal < 0) descInputVal = 0;
+
+    let descuentoGlobal = 0;
+    if (tipoDesc === '%') {
+        descuentoGlobal = (subtotalBruto * descInputVal) / 100;
+    } else {
+        descuentoGlobal = descInputVal;
+    }
+
+    // REGLA DE ORO DE DESCUENTOS: Verificar que ningún producto se venda por debajo de su precio_compra
+    let tieneError = false;
+    let mensajeError = '';
+
+    carrito.forEach(item => {
+        const itemSubtotal = item.cantidad * item.precio_unitario;
+        const propGlobalItem = subtotalBruto > 0 ? (descuentoGlobal * itemSubtotal / subtotalBruto) : 0;
+        const descUnitItem = propGlobalItem / item.cantidad;
+        const precioEfectivoUnit = item.precio_unitario - descUnitItem;
+        const precioCompra = item.precio_compra || 0;
+
+        if (precioEfectivoUnit < precioCompra) {
+            tieneError = true;
+            mensajeError = `⚠️ ¡Bloqueado! El precio final (S/ ${precioEfectivoUnit.toFixed(2)}) de "${item.nombre}" no puede ser menor al costo de compra (S/ ${precioCompra.toFixed(2)}).`;
+        }
+    });
+
+    const totalFinal = Math.max(0, subtotalBruto - descuentoGlobal);
+
+    if (subtotalEl) subtotalEl.textContent = `S/ ${subtotalBruto.toFixed(2)}`;
+
+    if (descuentoGlobal > 0) {
+        if (descuentoRow) descuentoRow.style.display = 'flex';
+        if (descuentoLbl) descuentoLbl.textContent = `-S/ ${descuentoGlobal.toFixed(2)}`;
+        if (descMontoLbl) descMontoLbl.textContent = `-S/ ${descuentoGlobal.toFixed(2)}`;
+    } else {
+        if (descuentoRow) descuentoRow.style.display = 'none';
+        if (descMontoLbl) descMontoLbl.textContent = `-S/ 0.00`;
+    }
+
+    if (tieneError) {
+        if (errorMsgEl) {
+            errorMsgEl.style.display = 'block';
+            errorMsgEl.textContent = mensajeError;
+        }
+        if (inputDesc) inputDesc.style.border = '2px solid #ef4444';
+        totalEl.style.color = '#ef4444';
+        if (btnProcesar) {
+            btnProcesar.disabled = true;
+            btnProcesar.style.opacity = '0.5';
+            btnProcesar.style.cursor = 'not-allowed';
+        }
+    } else {
+        if (errorMsgEl) errorMsgEl.style.display = 'none';
+        if (inputDesc) inputDesc.style.border = '1px solid #cbd5e1';
+        totalEl.style.color = '#16a34a';
+        if (btnProcesar) {
+            btnProcesar.disabled = false;
+            btnProcesar.style.opacity = '1';
+            btnProcesar.style.cursor = 'pointer';
+        }
+    }
+
+    totalEl.textContent = `S/ ${totalFinal.toFixed(2)}`;
 }
 
 async function procesarVenta() {
@@ -196,18 +284,47 @@ async function procesarVenta() {
 
     const clienteNomInput = document.getElementById('pos-cliente-nombre');
     const clienteDocInput = document.getElementById('pos-cliente-doc');
+    const inputDesc = document.getElementById('pos-descuento-val');
+    const tipoDescEl = document.getElementById('pos-tipo-descuento');
+    const tipoDesc = tipoDescEl ? tipoDescEl.value : 'S/';
 
     const clienteNombre = clienteNomInput && clienteNomInput.value.trim() ? clienteNomInput.value.trim() : 'Público General';
     const clienteDoc = clienteDocInput && clienteDocInput.value.trim() ? clienteDocInput.value.trim() : '----------------';
 
+    let rawVal = inputDesc ? String(inputDesc.value || '0').replace(',', '.') : '0';
+    let descInputVal = parseFloat(rawVal);
+    if (isNaN(descInputVal) || descInputVal < 0) descInputVal = 0;
+
+    let subtotalBruto = carrito.reduce((acc, i) => acc + (i.cantidad * i.precio_unitario), 0);
+    let descuentoTotal = (tipoDesc === '%') ? (subtotalBruto * descInputVal) / 100 : descInputVal;
+
+    // Validación cliente antes de enviar
+    for (let item of carrito) {
+        const propGlobalItem = subtotalBruto > 0 ? (descuentoTotal * (item.cantidad * item.precio_unitario) / subtotalBruto) : 0;
+        const descUnitItem = propGlobalItem / item.cantidad;
+        const precioEfectivoUnit = item.precio_unitario - descUnitItem;
+        const precioCompra = item.precio_compra || 0;
+
+        if (precioEfectivoUnit < precioCompra) {
+            alert(`No se puede procesar la venta: El descuento aplicado deja a "${item.nombre}" en S/ ${precioEfectivoUnit.toFixed(2)}, por debajo del costo de compra S/ ${precioCompra.toFixed(2)}.`);
+            return;
+        }
+    }
+
     const payload = {
         metodo_pago: metodoPago,
         id_usuario: user.id,
-        detalles: carrito.map(item => ({
-            id_producto: item.id_producto,
-            cantidad: item.cantidad,
-            precio_unitario: item.precio_unitario
-        }))
+        descuento_total: round2(descuentoTotal),
+        detalles: carrito.map(item => {
+            const propGlobalItem = subtotalBruto > 0 ? (descuentoTotal * (item.cantidad * item.precio_unitario) / subtotalBruto) : 0;
+            const descUnitItem = propGlobalItem / item.cantidad;
+            return {
+                id_producto: item.id_producto,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio_unitario,
+                descuento_unitario: round2(descUnitItem)
+            };
+        })
     };
 
     try {
@@ -221,12 +338,14 @@ async function procesarVenta() {
 
         if (response.ok) {
             const copiaCarrito = [...carrito];
-            const totalCobrado = payload.detalles.reduce((acc, curr) => acc + (curr.cantidad * curr.precio_unitario), 0);
+            const totalCobrado = Math.max(0, subtotalBruto - descuentoTotal);
 
             mostrarBoletaVenta({
                 correlativo: result.correlativo,
                 fecha: result.fecha || new Date().toLocaleString(),
                 metodo_pago: result.metodo_pago,
+                subtotal: subtotalBruto,
+                descuento_total: descuentoTotal,
                 total: totalCobrado,
                 detalles: copiaCarrito,
                 sede_nombre: result.sede_nombre || 'Sede Principal',
@@ -244,6 +363,7 @@ async function procesarVenta() {
             carrito = [];
             if (clienteNomInput) clienteNomInput.value = '';
             if (clienteDocInput) clienteDocInput.value = '';
+            if (inputDesc) inputDesc.value = '';
             renderCarrito();
 
             cargarProductosCaja();
@@ -263,6 +383,10 @@ async function procesarVenta() {
     }
 }
 
+function round2(val) {
+    return Math.round((val + Number.EPSILON) * 100) / 100;
+}
+
 function mostrarBoletaVenta(data) {
     const paper = document.getElementById('boleta-printable');
     if (!paper) return;
@@ -279,6 +403,29 @@ function mostrarBoletaVenta(data) {
             </tr>
         `;
     });
+
+    const descTotal = data.descuento_total || 0;
+    const subtotal = data.subtotal || (data.total + descTotal);
+
+    let totalRowsHtml = '';
+    if (descTotal > 0) {
+        totalRowsHtml = `
+            <tr>
+                <td style="background: #f8fafc; font-size: 0.8rem; color:#64748b;">SUBTOTAL</td>
+                <td style="background: #ffffff; color: #475569; font-size: 0.85rem; text-align:right;">S/ ${subtotal.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td style="background: #f8fafc; font-size: 0.8rem; color:#dc2626;">DESCUENTO</td>
+                <td style="background: #ffffff; color: #dc2626; font-size: 0.85rem; font-weight:700; text-align:right;">-S/ ${descTotal.toFixed(2)}</td>
+            </tr>
+        `;
+    }
+    totalRowsHtml += `
+        <tr>
+            <td style="background: #0f172a; color:white; font-size: 0.85rem; font-weight:700;">TOTAL</td>
+            <td style="background: #0f172a; color: #4ade80; font-size: 1.1rem; font-weight:800; text-align:right;">S/ ${data.total.toFixed(2)}</td>
+        </tr>
+    `;
 
     paper.innerHTML = `
         <div class="boleta-header">
@@ -337,10 +484,7 @@ function mostrarBoletaVenta(data) {
                 Sede: <strong>${data.sede_nombre}</strong>
             </div>
             <table class="boleta-total-table">
-                <tr>
-                    <td style="background: #f8fafc; font-size: 0.9rem;">TOTAL</td>
-                    <td style="background: #ffffff; color: #0f172a; font-size: 1.1rem;">S/ ${data.total.toFixed(2)}</td>
-                </tr>
+                ${totalRowsHtml}
             </table>
         </div>
 

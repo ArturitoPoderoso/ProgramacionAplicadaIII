@@ -145,6 +145,11 @@ async function loadUsers() {
     try {
         const currentUser = JSON.parse(localStorage.getItem('user')) || {};
         const currentRole = currentUser.activeRole || currentUser.role || 'Administrador';
+        
+        if (currentRole === 'Vendedor') {
+            return; // Vendedores no gestionan usuarios
+        }
+
         const currentId = currentUser.id || 1;
 
         const response = await fetch(`${API_URL}/users`, {
@@ -153,6 +158,11 @@ async function loadUsers() {
                 'X-User-Id': currentId
             }
         });
+
+        if (!response.ok) {
+            return;
+        }
+
         const users = await response.json();
         
         const tbody = document.getElementById('users-tbody');
@@ -522,6 +532,8 @@ function aplicarReglasVisibilidadNavegacion(role) {
     const elPerfilVendedor = document.getElementById('nav-mi-perfil-vendedor');
     const elProductos = document.getElementById('nav-productos');
     const elVentas = document.getElementById('nav-ventas');
+    const elHistorialVentas = document.getElementById('nav-historial-ventas');
+    const elProformas = document.getElementById('nav-proformas');
     const elClientes = document.getElementById('nav-clientes');
     const elCompras = document.getElementById('nav-compras');
     const elProveedores = document.getElementById('nav-proveedores');
@@ -535,10 +547,12 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elPerfilVendedor) elPerfilVendedor.style.display = 'flex';
         if (elVentas) elVentas.style.display = 'flex';
         if (elProductos) elProductos.style.display = 'flex';
+        if (elProformas) elProformas.style.display = 'flex';
         if (elClientes) elClientes.style.display = 'flex';
         if (elBoletas) elBoletas.style.display = 'flex';
         if (elFacturas) elFacturas.style.display = 'flex';
 
+        if (elHistorialVentas) elHistorialVentas.style.display = 'none';
         if (elCompras) elCompras.style.display = 'none';
         if (elProveedores) elProveedores.style.display = 'none';
         if (elGanancias) elGanancias.style.display = 'none';
@@ -548,13 +562,15 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elSeguridad) elSeguridad.style.display = 'block';
         if (elPerfilVendedor) elPerfilVendedor.style.display = 'none';
         if (elProductos) elProductos.style.display = 'flex';
+        if (elVentas) elVentas.style.display = 'flex';
+        if (elHistorialVentas) elHistorialVentas.style.display = 'flex';
+        if (elProformas) elProformas.style.display = 'none';
         if (elCompras) elCompras.style.display = 'flex';
         if (elProveedores) elProveedores.style.display = 'flex';
         if (elClientes) elClientes.style.display = 'flex';
         if (elBoletas) elBoletas.style.display = 'flex';
         if (elFacturas) elFacturas.style.display = 'flex';
 
-        if (elVentas) elVentas.style.display = 'none';
         if (elGanancias) elGanancias.style.display = 'none';
         if (btnNuevoProd) btnNuevoProd.style.display = 'inline-flex';
 
@@ -563,6 +579,9 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elSeguridad) elSeguridad.style.display = 'block';
         if (elPerfilVendedor) elPerfilVendedor.style.display = 'none';
         if (elProductos) elProductos.style.display = 'flex';
+        if (elVentas) elVentas.style.display = 'flex';
+        if (elHistorialVentas) elHistorialVentas.style.display = 'flex';
+        if (elProformas) elProformas.style.display = 'none';
         if (elCompras) elCompras.style.display = 'flex';
         if (elProveedores) elProveedores.style.display = 'flex';
         if (elClientes) elClientes.style.display = 'flex';
@@ -570,7 +589,6 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elBoletas) elBoletas.style.display = 'flex';
         if (elFacturas) elFacturas.style.display = 'flex';
 
-        if (elVentas) elVentas.style.display = 'none';
         if (btnNuevoProd) btnNuevoProd.style.display = 'inline-flex';
     }
 }
