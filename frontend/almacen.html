@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Almacén - Ferretería Jessmi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="dashboard.css?v=3">
+    <style>
+        .stock-bajo { color: #E53935; font-weight: 600; }
+        .stock-ok { color: #43A047; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="ph-fill ph-gear sidebar-logo-icon"></i>
+                <div class="sidebar-brand">
+                    <span>Ferretería</span>
+                    <span>JESSMI</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="ph-fill ph-users"></i>
+                    <span>Usuarios</span>
+                </a>
+                <a href="almacen.html" class="nav-item active">
+                    <i class="ph-fill ph-cube"></i>
+                    <span>Almacén</span>
+                </a>
+                <a href="caja.html" class="nav-item">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span>Caja / Ventas</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <h1 class="page-title">ALMACÉN E INVENTARIO</h1>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name" id="display-username">Cargando...</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-area">
+                <div class="actions-bar">
+                    <div class="action-buttons">
+                        <button class="btn-action" onclick="abrirModalCrearProducto()">
+                            <i class="ph ph-plus"></i>
+                            Nuevo Producto
+                        </button>
+                    </div>
+                    
+                    <div class="search-and-filter">
+                        <div class="search-box">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="search-input" placeholder="Buscar producto o código...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>CÓDIGO</th>
+                                <th>PRODUCTO</th>
+                                <th>CATEGORÍA</th>
+                                <th>STOCK</th>
+                                <th>MIN.</th>
+                                <th>P. COMPRA</th>
+                                <th>P. VENTA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productos-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Crear Producto -->
+    <div class="modal-overlay" id="modal-crear-producto">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Nuevo Producto</h3>
+                <button class="modal-close" onclick="closeModal('modal-crear-producto')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Código de Producto</label>
+                    <input type="text" id="new-prod-codigo" placeholder="Ej: PROD-001">
+                </div>
+                <div class="form-group">
+                    <label>Nombre del Producto</label>
+                    <input type="text" id="new-prod-nombre" placeholder="Ej: Martillo">
+                </div>
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select class="form-select" id="new-prod-categoria">
+                        <option value="">Seleccione...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input type="text" id="new-prod-desc">
+                </div>
+                <div class="form-group">
+                    <label>Precio Compra</label>
+                    <input type="number" id="new-prod-pcompra" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Precio Venta</label>
+                    <input type="number" id="new-prod-pventa" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Stock Inicial</label>
+                    <input type="number" id="new-prod-stock" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Stock Mínimo (Alerta)</label>
+                    <input type="number" id="new-prod-minimo" value="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-crear-producto')">Cancelar</button>
+                <button class="btn-save" style="position:static" onclick="crearProducto()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="almacen.js"></script>
+</body>
+</html>

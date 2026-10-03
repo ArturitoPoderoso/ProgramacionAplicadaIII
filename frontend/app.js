@@ -19,6 +19,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const roleContainer = document.getElementById('role-select-container');
+    const roleWelcome = document.getElementById('role-select-welcome');
+    const roleWrapper = document.getElementById('role-buttons-wrapper');
+    const btnCancelRole = document.getElementById('btn-cancel-role');
+
+    if (btnCancelRole) {
+        btnCancelRole.addEventListener('click', () => {
+            if (roleContainer) roleContainer.style.display = 'none';
+            if (loginForm) loginForm.style.display = 'flex';
+            const btn = loginForm.querySelector('.btn-primary');
+            if (btn) {
+                btn.textContent = 'Iniciar Sesión';
+                btn.disabled = false;
+            }
+        });
+    }
+
     // Handle form submission
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -43,23 +60,64 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Save token or user data if needed, then redirect
-                // Determine activeRole based on roles list
-                if (data.roles && data.roles.length > 0) {
-                    if (data.roles.includes('Administrador')) data.activeRole = 'Administrador';
-                    else if (data.roles.includes('Supervisor')) data.activeRole = 'Supervisor';
-                    else data.activeRole = 'Vendedor';
-                } else {
-                    data.activeRole = data.role || 'Vendedor';
-                }
-                
-                localStorage.setItem('user', JSON.stringify(data));
-                
-                if (data.activeRole === 'Vendedor') {
-                    window.location.href = 'perfil.html';
-                } else {
+                const roles = data.roles || (data.role ? [data.role] : ['Vendedor']);
+
+                const ingresarConRol = (selectedRole) => {
+                    data.activeRole = selectedRole;
+                    data.roles = roles;
+                    localStorage.setItem('user', JSON.stringify(data));
                     window.location.href = 'dashboard.html';
+                };
+
+                // Si el usuario tiene 2 o más roles, mostramos el menú de selección
+                if (roles.length > 1) {
+                    loginForm.style.display = 'none';
+                    roleContainer.style.display = 'flex';
+                    roleWelcome.textContent = `¡Hola, ${data.first_name || data.username || 'Usuario'}!`;
+                    roleWrapper.innerHTML = '';
+
+                    const roleDetails = {
+                        'Administrador': {
+                            icon: 'ph-crown',
+                            class: 'role-btn-admin',
+                            desc: 'Gestión total, usuarios e inventario'
+                        },
+                        'Supervisor': {
+                            icon: 'ph-shield-check',
+                            class: 'role-btn-supervisor',
+                            desc: 'Supervisión de almacén y reportes'
+                        },
+                        'Vendedor': {
+                            icon: 'ph-storefront',
+                            class: 'role-btn-vendedor',
+                            desc: 'Punto de venta y emisión de boletas'
+                        }
+                    };
+
+                    roles.forEach(r => {
+                        const info = roleDetails[r] || { icon: 'ph-user', class: '', desc: 'Acceso al sistema' };
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = `role-btn ${info.class}`;
+                        b.innerHTML = `
+                            <div class="role-icon-box">
+                                <i class="ph-fill ${info.icon}"></i>
+                            </div>
+                            <div class="role-text-content">
+                                <span class="role-title">Ingresar como ${r}</span>
+                                <span class="role-desc">${info.desc}</span>
+                            </div>
+                            <i class="ph ph-caret-right role-arrow"></i>
+                        `;
+                        b.onclick = () => ingresarConRol(r);
+                        roleWrapper.appendChild(b);
+                    });
+
+                } else {
+                    // Si solo tiene 1 rol, entra directo
+                    ingresarConRol(roles[0] || 'Vendedor');
                 }
+
             } else {
                 alert(data.error || 'Credenciales incorrectas');
                 btn.textContent = originalText;

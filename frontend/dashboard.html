@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="dashboard.css?v=3">
+    <link rel="stylesheet" href="dashboard.css?v=7">
 </head>
 <body>
     <div class="app-container">
@@ -33,23 +33,23 @@
                         <i class="ph ph-caret-down ml-auto"></i>
                     </a>
                     <div class="nav-subgroup" id="subgroup-seguridad">
-                        <a href="dashboard.html" class="nav-subitem active">Usuarios</a>
-                        <a href="perfil.html" class="nav-subitem">Mi Perfil</a>
+                        <a href="#" onclick="showSection('section-usuarios')" class="nav-subitem active">Usuarios</a>
+                        <a href="#" onclick="showSection('section-perfil')" class="nav-subitem">Mi Perfil</a>
                     </div>
                 </div>
 
-                <a href="perfil.html" class="nav-item" id="nav-mi-perfil-vendedor" style="display: none;">
+                <a href="#" onclick="showSection('section-perfil')" class="nav-item" id="nav-mi-perfil-vendedor" style="display: none;">
                     <i class="ph-fill ph-user-circle"></i>
                     <span>Mi Perfil</span>
                 </a>
 
 
-                <a href="#" class="nav-item">
+                <a href="#" onclick="showSection('section-productos')" class="nav-item">
                     <i class="ph-fill ph-cube"></i>
                     <span>Productos</span>
                 </a>
                 
-                <a href="#" class="nav-item">
+                <a href="#" onclick="showSection('section-ventas')" class="nav-item">
                     <i class="ph-fill ph-chart-line-up"></i>
                     <span>Ventas</span>
                     <i class="ph ph-caret-right ml-auto"></i>
@@ -90,29 +90,29 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content">
-            <!-- Topbar -->
+        <main class="main-content" id="main-app-content">
+
             <header class="topbar">
-                <h1 class="page-title">GESTIÓN DE USUARIOS</h1>
+                <h1 class="page-title" id="global-page-title">SISTEMA JESMI</h1>
                 <div class="user-profile" onclick="document.getElementById('user-dropdown').classList.toggle('show')">
                     <div class="avatar">
-                        <img src="https://ui-avatars.com/api/?name=Lenin+Alvarez&background=random" alt="Avatar">
+                        <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" id="topbar-avatar">
                     </div>
                     <div class="user-info">
-                        <span class="user-name">Lenin Alvarez</span>
-                        <span class="user-role">Administrador</span>
+                        <span class="user-name" id="display-username">Cargando...</span>
                     </div>
                     
                     <div class="user-dropdown" id="user-dropdown">
-                        <div id="profile-switcher-container" style="display: none; border-bottom: 1px solid #eee; margin-bottom: 5px; padding-bottom: 5px;">
-                            <!-- Botones de cambio de perfil generados dinámicamente -->
-                        </div>
                         <button onclick="cerrarSesion()">
                             <i class="ph ph-sign-out"></i> Cerrar Sesión
                         </button>
                     </div>
                 </div>
             </header>
+
+<div id="section-usuarios" class="app-section" style="display:block;">
+            <!-- Topbar -->
+            
 
             <!-- Dashboard Content -->
             <div class="dashboard-area">
@@ -153,10 +153,244 @@
 
 
             </div>
-        </main>
+        </div>
+<div id="section-perfil" class="app-section" style="display:none;">
+            <!-- Topbar -->
+            
+
+            <!-- Dashboard Area: Profile -->
+            <div class="dashboard-area">
+                
+                <div class="profile-container">
+                    <!-- Left Card: User Info -->
+                    <div class="profile-card-left">
+                        <img src="https://ui-avatars.com/api/?name=User&background=random&size=200" alt="Avatar" class="profile-avatar-large" id="profile-avatar">
+                        
+                        <div class="profile-info-grid">
+                            <span class="profile-info-label">Correo:</span>
+                            <span class="profile-info-value" id="profile-email-lbl">---</span>
+                            
+                            <span class="profile-info-label">Teléfono:</span>
+                            <span class="profile-info-value" id="profile-phone-lbl">---</span>
+                            
+                            <span class="profile-info-label">Dni:</span>
+                            <span class="profile-info-value" id="profile-dni-lbl">---</span>
+                            
+                            <span class="profile-info-label">Rol:</span>
+                            <span class="profile-info-value" id="profile-role-lbl">---</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Card: Forms with Tabs -->
+                    <div class="profile-card-right">
+                        <div class="profile-tabs">
+                            <div class="profile-tab active" id="tab-personal">Datos personales</div>
+                            <div class="profile-tab" id="tab-password">Contraseña</div>
+                        </div>
+                        
+                        <!-- Tab 1: Datos Personales -->
+                        <div class="tab-pane active profile-form-content" id="pane-personal">
+                            <div class="form-group">
+                                <label>Nombres y Apellidos</label>
+                                <div class="form-control-readonly" id="profile-names-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Usuario</label>
+                                <div class="form-control-readonly" id="profile-username-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Dni</label>
+                                <div class="form-control-readonly" id="profile-dni-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Telefono</label>
+                                <div class="form-control-readonly" id="profile-phone-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Sexo</label>
+                                <div class="form-control-readonly" id="profile-gender-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Local/sede</label>
+                                <div class="form-control-readonly" id="profile-location-val">---</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab 2: Contraseña -->
+                        <div class="tab-pane profile-form-content single-column" id="pane-password">
+                            <div class="form-group">
+                                <label>Nueva contraseña</label>
+                                <input type="password" id="profile-new-password" placeholder="">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirmar contraseña</label>
+                                <input type="password" id="profile-confirm-password" placeholder="">
+                            </div>
+                            <div class="profile-actions" style="margin-top: 20px;">
+                                <!-- Save Button -->
+                                <button class="btn-save" onclick="guardarPerfil(this)">Guardar cambios</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<div id="section-productos" class="app-section" style="display:none;">
+            
+
+            <div class="dashboard-area">
+                <div class="actions-bar">
+                    <div class="action-buttons">
+                        <button class="btn-action" onclick="abrirModalCrearProducto()">
+                            <i class="ph ph-plus"></i>
+                            Nuevo Producto
+                        </button>
+                    </div>
+                    
+                    <div class="search-and-filter">
+                        <div class="search-box">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="search-input" placeholder="Buscar producto o código..." oninput="filtrarProductosAlmacen(this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>CÓDIGO</th>
+                                <th>PRODUCTO</th>
+                                <th>CATEGORÍA</th>
+                                <th>STOCK</th>
+                                <th>MIN.</th>
+                                <th>P. COMPRA</th>
+                                <th>P. VENTA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productos-tbody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination-bar">
+                    <span id="paginacion-info" class="pagination-info">Página 1 de 1 (0 productos)</span>
+                    <div class="pagination-controls">
+                        <button id="btn-pag-prev" class="btn-pag" onclick="cambiarPaginaAlmacen(-1)" disabled>
+                            <i class="ph ph-caret-left"></i> Anterior
+                        </button>
+                        <button id="btn-pag-next" class="btn-pag" onclick="cambiarPaginaAlmacen(1)" disabled>
+                            Siguiente <i class="ph ph-caret-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+<div id="section-ventas" class="app-section" style="display:none;">
+            
+
+            <div class="dashboard-area" style="padding-top: 10px;">
+                <div class="pos-container">
+                    
+                    <!-- Lado izquierdo: Productos -->
+                    <div class="products-section">
+                        <div class="search-box">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="search-pos" placeholder="Buscar producto o código de barras..." onkeyup="filtrarProductos()">
+                        </div>
+                        <div class="product-grid" id="product-grid">
+                            <!-- Productos cargados dinamicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Lado derecho: Carrito -->
+                    <div class="cart-section">
+                        <h3 style="margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Carrito de Ventas</h3>
+                        <div class="cart-items" id="cart-items">
+                            <div style="text-align:center; color:#888; margin-top:50px;">El carrito está vacío</div>
+                        </div>
+                        
+                        <div class="cart-total-section">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.76rem; font-weight: 700;">Cliente</label>
+                                    <input type="text" id="pos-cliente-nombre" placeholder="Público General" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.76rem; font-weight: 700;">DNI / RUC</label>
+                                    <input type="text" id="pos-cliente-doc" placeholder="----------------" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 6px;">
+                                <label style="font-size: 0.76rem; font-weight: 700;">Método de Pago</label>
+                                <select class="form-select" id="metodo-pago" style="padding: 6px 8px; font-size: 0.85rem; border-radius: 6px;">
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Tarjeta">Tarjeta (POS)</option>
+                                    <option value="Yape/Plin">Yape / Plin</option>
+                                </select>
+                            </div>
+                            <div class="total-row">
+                                <span>TOTAL:</span>
+                                <span id="cart-total">S/ 0.00</span>
+                            </div>
+                            <button class="btn-save btn-cobrar" onclick="procesarVenta()">Cobrar</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+</main>
     </div>
 
     <!-- Modals -->
+<!-- Modal Crear Producto -->
+    <div class="modal-overlay" id="modal-crear-producto">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Nuevo Producto</h3>
+                <button class="modal-close" onclick="closeModal('modal-crear-producto')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Código de Producto</label>
+                    <input type="text" id="new-prod-codigo" placeholder="Ej: PROD-001">
+                </div>
+                <div class="form-group">
+                    <label>Nombre del Producto</label>
+                    <input type="text" id="new-prod-nombre" placeholder="Ej: Martillo">
+                </div>
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select class="form-select" id="new-prod-categoria">
+                        <option value="">Seleccione...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input type="text" id="new-prod-desc">
+                </div>
+                <div class="form-group">
+                    <label>Precio Compra</label>
+                    <input type="number" id="new-prod-pcompra" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Precio Venta</label>
+                    <input type="number" id="new-prod-pventa" step="0.1" value="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Stock Mínimo (Alerta)</label>
+                    <input type="number" id="new-prod-minimo" value="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-crear-producto')">Cancelar</button>
+                <button class="btn-save" style="position:static" onclick="crearProducto()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modal-crear-usuario">
         <div class="modal-container">
             <div class="modal-header">
@@ -260,6 +494,75 @@
         </div>
     </div>
 
-    <script src="dashboard.js?v=8"></script>
+    <!-- Modal Boleta de Venta -->
+    <div class="modal-overlay" id="modal-ticket-venta">
+        <div class="modal-container" style="max-width: 580px; border-radius: 14px; overflow: hidden; padding: 0; background: #f8fafc;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 14px 20px;">
+                <h3 style="color: white; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-receipt"></i> Boleta de Venta Emitida
+                </h3>
+                <button class="modal-close" style="color: white; opacity: 0.9;" onclick="closeModal('modal-ticket-venta')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: 80vh;">
+                <!-- Recuadro Boleta Imprimible -->
+                <div id="boleta-printable" class="boleta-paper">
+                    <!-- Boleta dinámicamente generada -->
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 14px 20px; background: #ffffff; border-top: 1px solid #e2e8f0;">
+                <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; padding: 8px 16px;" onclick="imprimirBoleta()"><i class="ph ph-printer"></i> Imprimir Boleta</button>
+                <button class="btn-save" style="position:static; background: #F57C00; padding: 8px 20px;" onclick="closeModal('modal-ticket-venta')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="dashboard.js?v=9"></script>
+    <script src="almacen.js?v=4"></script>
+    <script src="caja.js?v=4"></script>
+    <script>
+        function showSection(sectionId) {
+            if (sectionId === 'section-productos') {
+                if (typeof cargarProductosAlmacen === 'function') cargarProductosAlmacen();
+            }
+            if (sectionId === 'section-ventas') {
+                if (typeof cargarProductosCaja === 'function') cargarProductosCaja();
+            }
+            document.querySelectorAll('.app-section').forEach(el => el.style.display = 'none');
+            document.getElementById(sectionId).style.display = 'block';
+            
+            const titles = {
+                'section-usuarios': 'GESTIÓN DE USUARIOS',
+                'section-perfil': 'MI PERFIL',
+                'section-productos': 'ALMACÉN E INVENTARIO',
+                'section-ventas': 'PUNTO DE VENTA (CAJA)'
+            };
+            const titleEl = document.getElementById('global-page-title');
+            if (titleEl) {
+                titleEl.textContent = titles[sectionId] || 'SISTEMA JESMI';
+            }
+
+            document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
+            const clicked = Array.from(document.querySelectorAll('.sidebar-nav .nav-item')).find(el => el.getAttribute('onclick') === `showSection('${sectionId}')`);
+            if (clicked) clicked.classList.add('active');
+            
+            const u = JSON.parse(localStorage.getItem('user')) || {};
+            const role = u.activeRole || u.role;
+            if (role === 'Vendedor' && sectionId === 'section-usuarios') {
+                showSection('section-perfil');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const u = JSON.parse(localStorage.getItem('user')) || {};
+            const role = u.activeRole || u.role;
+            if (role === 'Vendedor') {
+                showSection('section-perfil');
+            } else {
+                showSection('section-usuarios');
+            }
+        });
+    </script>
+
 </body>
 </html>

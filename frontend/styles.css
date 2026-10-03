@@ -209,3 +209,102 @@ body {
     opacity: 0.7;
     text-decoration: underline;
 }
+
+/* Estilos para Selección de Rol */
+.role-card-wrapper {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.role-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 18px;
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+    position: relative;
+    outline: none;
+}
+
+.role-btn:hover {
+    border-color: #f59e0b;
+    background: #fffdf5;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.25);
+}
+
+.role-btn:active {
+    transform: scale(0.98);
+}
+
+.role-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.role-btn:hover .role-icon-box {
+    transform: scale(1.08);
+}
+
+.role-btn-admin .role-icon-box {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.role-btn-vendedor .role-icon-box {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.role-btn-supervisor .role-icon-box {
+    background: #f3e8ff;
+    color: #7e22ce;
+}
+
+.role-text-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.role-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.role-desc {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 400;
+}
+
+.role-arrow {
+    margin-left: auto;
+    font-size: 1.1rem;
+    color: #cbd5e1;
+    transition: all 0.2s ease;
+}
+
+.role-btn:hover .role-arrow {
+    color: #f59e0b;
+    transform: translateX(4px);
+}

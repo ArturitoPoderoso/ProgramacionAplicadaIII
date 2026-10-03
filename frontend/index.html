@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20261003_1325">
 </head>
 
 <body>
@@ -48,10 +48,23 @@
             <button type="submit" class="btn-primary">Iniciar Sesión</button>
         </form>
 
+        <div id="role-select-container" style="display: none; width: 100%; flex-direction: column; gap: 15px; margin-top: 5px;">
+            <div class="role-card-wrapper">
+                <p id="role-select-welcome" style="font-size: 1.05rem; color: #0f172a; font-weight: 700; margin-bottom: 4px;"></p>
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 18px;">Selecciona el rol con el que deseas ingresar hoy:</p>
+                <div id="role-buttons-wrapper" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Los botones de roles se inyectan en app.js -->
+                </div>
+            </div>
+            <button type="button" id="btn-cancel-role" style="background: none; border: none; color: #64748b; font-size: 0.85rem; cursor: pointer; text-decoration: underline; align-self: center;">
+                ← Volver a ingresar datos
+            </button>
+        </div>
+
 
     </div>
 
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=20261003_1308"></script>
 </body>
 
 </html>

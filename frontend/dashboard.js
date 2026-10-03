@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ------------------------------------
 // Lógica de Backend (API)
 // ------------------------------------
-const API_URL = 'http://localhost:8000/api';
+var API_URL = 'http://localhost:8000/api';
 
 async function loadUsers() {
     try {
@@ -522,13 +522,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentUser = JSON.parse(localStorage.getItem('user')) || {};
     const currentRole = currentUser.activeRole || currentUser.role || 'Administrador';
 
-    if (currentRole === 'Vendedor') {
-        // Redirigir a los vendedores inmediatamente si intentan entrar al dashboard principal
-        if (!document.getElementById('profile-email-lbl')) { // profile-email-lbl solo existe en perfil.html
-            window.location.href = 'perfil.html';
-            return;
-        }
+    // Actualizar nombre y rol activo en el topbar
+    const nameEl = document.getElementById('display-username');
+    if (nameEl) {
+        const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username || 'Usuario';
+        nameEl.textContent = `${fullName} (${currentRole})`;
+    }
 
+    const avatarEl = document.getElementById('topbar-avatar');
+    if (avatarEl) {
+        const nameForAvatar = encodeURIComponent(currentUser.first_name || currentUser.username || 'User') + '+' + encodeURIComponent(currentUser.last_name || '');
+        avatarEl.src = `https://ui-avatars.com/api/?name=${nameForAvatar}&background=random`;
+    }
+
+    if (currentRole === 'Vendedor') {
         // Ocultar grupo Seguridad y mostrar Mi Perfil suelto para Vendedores
         const groupSeguridad = document.getElementById('group-seguridad');
         if (groupSeguridad) groupSeguridad.style.display = 'none';
