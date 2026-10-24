@@ -1,3 +1,4 @@
+var API_URL = window.API_BASE_URL || 'http://localhost:8000/api';
 let proformaProductos = [];
 let proformaCart = [];
 
@@ -15,7 +16,7 @@ async function cargarProductosParaProforma() {
     listaEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;"><i class="ph ph-spinner ph-spin" style="font-size: 1.5rem;"></i> Cargando productos...</div>';
 
     try {
-        const response = await fetch('http://localhost:8000/api/productos');
+        const response = await fetch(`${API_URL}/productos`);
         const data = await response.json();
 
         if (response.ok) {
@@ -204,7 +205,7 @@ async function generarEImprimirProforma() {
     };
 
     try {
-        const response = await fetch('http://localhost:8000/api/proformas', {
+        const response = await fetch(`${API_URL}/proformas`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -238,7 +239,7 @@ async function cargarProformasEmitidas() {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 15px; color: #64748b;"><i class="ph ph-spinner ph-spin"></i> Cargando cotizaciones...</td></tr>';
 
     try {
-        let url = `http://localhost:8000/api/proformas?id_usuario=${user.id || ''}`;
+        let url = `${API_URL}/proformas?id_usuario=${user.id || ''}`;
         if (user.id_sede) url += `&sede_id=${user.id_sede}`;
         if (q) url += `&search=${encodeURIComponent(q)}`;
 
@@ -278,7 +279,7 @@ async function cargarProformasEmitidas() {
 
 async function verDetalleProforma(idProforma) {
     try {
-        const response = await fetch(`http://localhost:8000/api/proformas/${idProforma}`);
+        const response = await fetch(`${API_URL}/proformas/${idProforma}`);
         const data = await response.json();
 
         if (response.ok) {

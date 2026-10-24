@@ -6,7 +6,7 @@
  * - HU 21: Historial de Compras, control por sede, estados y anulación segura con reversión de stock.
  */
 
-const API_COMPRAS = 'http://localhost:8000/api';
+const API_COMPRAS = window.API_BASE_URL || 'http://localhost:8000/api';
 
 // Estado en memoria para emisión de orden
 let proveedorSeleccionadoOC = null;

@@ -1,4 +1,4 @@
-var API_URL = 'http://localhost:8000/api';
+var API_URL = window.API_BASE_URL || 'http://localhost:8000/api';
 
 function showNotification(message, type = 'success') {
     let container = document.getElementById('toast-container');
