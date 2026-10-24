@@ -3,6 +3,7 @@ flask-cors==4.0.0
 sqlalchemy>=2.0.35
 pg8000==1.30.5
 psycopg2-binary>=2.9.9
+psycopg[binary]>=3.1.18
 waitress>=3.0.0
 gunicorn>=21.2.0
 
