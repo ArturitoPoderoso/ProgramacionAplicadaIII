@@ -119,15 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnCompras && subgroupCompras) {
         btnCompras.addEventListener('click', (e) => {
             e.preventDefault();
-            subgroupCompras.classList.toggle('collapsed');
+            subgroupCompras.classList.remove('collapsed');
             const caret = btnCompras.querySelector('.ph-caret-down');
             if (caret) {
-                if (subgroupCompras.classList.contains('collapsed')) {
-                    caret.style.transform = 'rotate(-90deg)';
-                } else {
-                    caret.style.transform = 'rotate(0deg)';
-                }
+                caret.style.transform = 'rotate(0deg)';
                 caret.style.transition = 'transform 0.3s ease';
+            }
+            if (typeof showSection === 'function') {
+                showSection('section-emitir-orden');
             }
         });
     }
@@ -548,17 +547,12 @@ async function guardarPerfil(btnElement) {
 
 function aplicarReglasVisibilidadNavegacion(role) {
     const u = JSON.parse(localStorage.getItem('user')) || {};
-    const rolesList = [];
-    if (u.activeRole) rolesList.push(String(u.activeRole));
-    if (u.role && typeof u.role === 'string') rolesList.push(u.role);
-    if (Array.isArray(u.roles)) u.roles.forEach(r => rolesList.push(String(r)));
-    if (role) rolesList.push(String(role));
+    // El rol activo manda estrictamente: u.activeRole > role > u.role > rol por defecto
+    const activeRole = String(u.activeRole || role || u.role || (typeof getUsuarioRolActual === 'function' ? getUsuarioRolActual() : '') || 'Vendedor').toLowerCase().trim();
 
-    const rolesStr = rolesList.join(' ').toLowerCase();
-
-    const isAdmin = rolesStr.includes('admin');
-    const isSupervisor = rolesStr.includes('supervisor');
-    const isVendedor = rolesStr.includes('vendedor') && !isAdmin && !isSupervisor;
+    const isAdmin = activeRole.includes('admin');
+    const isSupervisor = activeRole.includes('supervisor');
+    const isVendedor = activeRole.includes('vendedor');
 
     const elSeguridad = document.getElementById('nav-seguridad');
     const elPerfilVendedor = document.getElementById('nav-mi-perfil-vendedor');

@@ -38,12 +38,16 @@ async function inicializarEmitirOrden() {
     await cargarSiguienteCorrelativoOC();
     await cargarProveedoresParaOrden();
 
-    // Establecer fecha esperada sugerida (+3 días hábiles)
+    // Establecer fecha esperada mínima (hoy) y sugerida (+3 días hábiles)
     const elFecha = document.getElementById('oc-fecha-esperada');
-    if (elFecha && !elFecha.value) {
-        const d = new Date();
-        d.setDate(d.getDate() + 3);
-        elFecha.value = d.toISOString().split('T')[0];
+    if (elFecha) {
+        const hoy = new Date();
+        const hoyStr = hoy.toISOString().split('T')[0];
+        elFecha.min = hoyStr;
+        if (!elFecha.value || elFecha.value < hoyStr) {
+            hoy.setDate(hoy.getDate() + 3);
+            elFecha.value = hoy.toISOString().split('T')[0];
+        }
     }
 }
 
@@ -94,7 +98,7 @@ async function cargarProveedoresParaOrden() {
         proveedores.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.id_proveedor;
-            opt.textContent = `${p.razon_social} (RUC: ${p.ruc})`;
+            opt.textContent = p.razon_social;
             opt.dataset.ruc = p.ruc;
             opt.dataset.contacto = p.nombre_contacto || 'Sin contacto';
             opt.dataset.telefono = p.telefono || 'Sin celular';
@@ -135,7 +139,7 @@ async function onProveedorOrdenChange() {
     const opt = selectProv.options[selectProv.selectedIndex];
     proveedorSeleccionadoOC = {
         id_proveedor: parseInt(idProv),
-        razon_social: opt.textContent.split(' (RUC:')[0],
+        razon_social: opt.textContent.trim(),
         ruc: opt.dataset.ruc,
         contacto: opt.dataset.contacto,
         telefono: opt.dataset.telefono,
@@ -172,8 +176,9 @@ async function cargarCatalogoDeProveedorParaOrden(idProveedor) {
     try {
         const u = JSON.parse(localStorage.getItem('user')) || {};
         const userRole = u.activeRole || u.role || 'Administrador';
+        const idSede = u.id_sede || 1;
 
-        const res = await fetch(`${API_COMPRAS}/proveedores/${idProveedor}/catalogo`, {
+        const res = await fetch(`${API_COMPRAS}/proveedores/${idProveedor}/catalogo?id_sede=${idSede}`, {
             headers: { 'X-Role': userRole }
         });
 
@@ -195,7 +200,7 @@ async function cargarCatalogoDeProveedorParaOrden(idProveedor) {
             const opt = document.createElement('option');
             const nom = p.nombre || p.nombre_producto || 'Producto';
             opt.value = p.id_producto;
-            opt.textContent = `${p.codigo_producto} - ${nom} (S/. ${parseFloat(p.precio_compra).toFixed(2)})`;
+            opt.textContent = `${p.codigo_producto} - ${nom}`;
             opt.dataset.codigo = p.codigo_producto;
             opt.dataset.nombre = nom;
             opt.dataset.precio = p.precio_compra;
@@ -437,6 +442,20 @@ async function emitirOrdenCompra() {
 
     const fechaEsperada = document.getElementById('oc-fecha-esperada')?.value || '';
     const observacion = document.getElementById('oc-observaciones')?.value.trim() || '';
+
+    // Validar que la fecha esperada no sea anterior a hoy
+    if (fechaEsperada) {
+        const hoyStr = new Date().toISOString().split('T')[0];
+        if (fechaEsperada < hoyStr) {
+            const msg = `Error: La fecha de entrega programada (${fechaEsperada}) no puede ser anterior a la fecha de hoy (${hoyStr}).`;
+            if (typeof showNotification === 'function') {
+                showNotification(msg, 'error');
+            } else {
+                alert(msg);
+            }
+            return;
+        }
+    }
 
     const payload = {
         id_proveedor: proveedorSeleccionadoOC.id_proveedor,

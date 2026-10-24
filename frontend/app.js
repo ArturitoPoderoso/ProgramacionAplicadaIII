@@ -49,7 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
         
         try {
-            const response = await fetch('http://localhost:8000/api/login', {
+            const baseUrl = window.API_BASE_URL || 'http://localhost:8000/api';
+            const response = await fetch(`${baseUrl}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

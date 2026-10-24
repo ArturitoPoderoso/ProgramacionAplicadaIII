@@ -1744,8 +1744,16 @@ def get_catalogo_proveedor(id_proveedor):
             "id_proveedor": proveedor.id_proveedor,
             "ruc": proveedor.ruc,
             "razon_social": proveedor.razon_social,
+            "id_sede": proveedor.id_sede,
+            "sede_nombre": proveedor.sede.nombre if proveedor.sede else "Todas las sedes",
             "condiciones_pago": proveedor.condiciones_pago
         }
+
+        # La sede del catálogo se determina prioritariamente por la sede del proveedor:
+        # Proveedores de Olivos (id_sede=1) jalan de inventario Olivos.
+        # Proveedores de SJL (id_sede=2) jalan de inventario SJL.
+        sede_param = request.args.get("id_sede", type=int) or request.args.get("sede_id", type=int)
+        id_sede_consulta = proveedor.id_sede or sede_param or 1
 
         items = db.query(models.ProveedorProducto).join(
             models.Producto, models.ProveedorProducto.id_producto == models.Producto.id_producto
@@ -1761,13 +1769,24 @@ def get_catalogo_proveedor(id_proveedor):
             cat_nom = p.categoria.nombre if p.categoria else "Sin categoría"
             subcat_nom = p.subcategoria_rel.nombre if p.subcategoria_rel else None
 
-            # Garantizar sincronización con el precio oficial de compra del inventario de almacén
+            # Garantizar sincronización exacta con el precio oficial de compra de la sede asignada
             inv = db.query(models.InventarioSede).filter(
-                models.InventarioSede.id_producto == p.id_producto
+                models.InventarioSede.id_producto == p.id_producto,
+                models.InventarioSede.id_sede == id_sede_consulta,
+                models.InventarioSede.estado_registro == 1
             ).first()
-            precio_oficial = inv.precio_compra if inv else it.precio_compra
-            if inv and it.precio_compra != inv.precio_compra:
-                it.precio_compra = inv.precio_compra
+
+            if not inv:
+                inv = db.query(models.InventarioSede).filter(
+                    models.InventarioSede.id_producto == p.id_producto,
+                    models.InventarioSede.estado_registro == 1
+                ).first()
+
+            precio_oficial = round(float(inv.precio_compra), 2) if (inv and inv.precio_compra is not None) else round(float(it.precio_compra), 2)
+
+            # Sincronizar permanentemente en proveedor_productos
+            if inv and inv.precio_compra is not None and it.precio_compra != precio_oficial:
+                it.precio_compra = precio_oficial
 
             resultado.append({
                 "id_proveedor_producto": it.id_proveedor_producto,
@@ -1965,6 +1984,17 @@ def emitir_orden_compra():
 
     if not items or len(items) == 0:
         return jsonify({"error": "La orden de compra debe incluir al menos un producto."}), 400
+
+    # Validar que la fecha esperada no sea anterior a hoy
+    if fecha_esperada:
+        try:
+            from datetime import datetime
+            fecha_dt = datetime.strptime(fecha_esperada, "%Y-%m-%d").date()
+            hoy_dt = datetime.now().date()
+            if fecha_dt < hoy_dt:
+                return jsonify({"error": f"La fecha esperada de entrega ({fecha_esperada}) no puede ser anterior a la fecha de hoy ({hoy_dt.strftime('%Y-%m-%d')})."}), 400
+        except ValueError:
+            pass
 
     db = get_db()
     try:

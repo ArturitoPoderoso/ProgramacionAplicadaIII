@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="dashboard.css?v=7">
+    <link rel="stylesheet" href="dashboard.css?v=8">
 </head>
 <body>
     <div class="app-container">
@@ -78,7 +78,7 @@
                         <span>Compras</span>
                         <i class="ph ph-caret-down ml-auto"></i>
                     </a>
-                    <div class="nav-subgroup collapsed" id="subgroup-compras">
+                    <div class="nav-subgroup" id="subgroup-compras">
                         <a href="#" onclick="showSection('section-emitir-orden')" class="nav-subitem" id="nav-sub-emitir-orden">Emitir Orden</a>
                         <a href="#" onclick="showSection('section-historial-compras')" class="nav-subitem" id="nav-sub-historial-compras">Historial Compras</a>
                     </div>
@@ -698,7 +698,7 @@
         <!-- Formulario: Proveedor y Fechas -->
         <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 16px;">
             
-            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 16px;">
+            <div style="display: grid; grid-template-columns: 2.5fr 1fr; gap: 16px;">
                 <div class="form-group">
                     <label style="font-weight: 700; font-size: 0.84rem; color: #334155; margin-bottom: 6px; display: block;">
                         Proveedor <span style="color: #ef4444;">*</span>
@@ -713,13 +713,6 @@
                         Fecha Llegada
                     </label>
                     <input type="date" id="oc-fecha-esperada" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; color: #0f172a;">
-                </div>
-
-                <div class="form-group">
-                    <label style="font-weight: 700; font-size: 0.84rem; color: #334155; margin-bottom: 6px; display: block;">
-                        Observaciones
-                    </label>
-                    <input type="text" id="oc-observaciones" placeholder="Ej: Pago 15 días, entrega almacén..." style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem;">
                 </div>
             </div>
 
@@ -1140,8 +1133,8 @@
         </div>
     </div>
 
-    
-    <script src="dashboard.js?v=20261003_1420"></script>
+    <script src="config.js"></script>
+    <script src="dashboard.js?v=20261024_1220"></script>
     <script src="almacen.js?v=4"></script>
     <script src="caja.js?v=5"></script>
     <script>
@@ -1150,7 +1143,7 @@
             const role = u.activeRole || u.role || 'Vendedor';
 
             // Redirección segura según permisos de rol
-            if (role === 'Vendedor' && (sectionId === 'section-usuarios' || sectionId === 'section-historial-ventas')) {
+            if (role === 'Vendedor' && (sectionId === 'section-usuarios' || sectionId === 'section-historial-ventas' || sectionId === 'section-emitir-orden' || sectionId === 'section-historial-compras' || sectionId === 'section-proveedores' || sectionId === 'section-ganancias')) {
                 sectionId = 'section-ventas';
             }
             if (role !== 'Vendedor' && sectionId === 'section-proformas') {
@@ -1455,6 +1448,7 @@
                 <div>
                     <h3 style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
                         <i class="ph-fill ph-package" style="color: #38bdf8;"></i> Catálogo de Productos del Proveedor
+                        <span id="catalogo-badge-total" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 12px; margin-left: 6px;">0 productos</span>
                     </h3>
                     <div id="catalogo-proveedor-info" style="margin-top: 4px;">
                         <!-- Cargado dinámicamente -->
@@ -1492,21 +1486,29 @@
                     </div>
                 </div>
 
-                <!-- Tabla de Productos del Catálogo -->
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.84rem;">
-                        <thead style="background: #f1f5f9; color: #475569; font-weight: 700; text-align: left;">
-                            <tr>
-                                <th style="padding: 10px 14px;">CÓDIGO INTERNO</th>
-                                <th style="padding: 10px 14px;">PRODUCTO / CATEGORÍA</th>
-                                <th style="padding: 10px 14px; text-align: right;">PRECIO DE COMPRA</th>
-                                <th style="padding: 10px 14px; text-align: center;">ACCIONES</th>
-                            </tr>
-                        </thead>
-                        <tbody id="catalogo-tbody">
-                            <!-- Renderizado dinámico -->
-                        </tbody>
-                    </table>
+                <!-- Tabla de Productos del Catálogo con Scroll Permanente y Cabecera Fija -->
+                <div style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: white;">
+                    <div class="catalogo-tabla-scroll" style="border-bottom: 1px solid #e2e8f0;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.84rem;">
+                            <thead style="background: #f1f5f9; color: #475569; font-weight: 700; text-align: left; position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">
+                                <tr>
+                                    <th style="padding: 10px 14px; background: #f1f5f9;">CÓDIGO INTERNO</th>
+                                    <th style="padding: 10px 14px; background: #f1f5f9;">PRODUCTO / CATEGORÍA</th>
+                                    <th style="padding: 10px 14px; text-align: right; background: #f1f5f9;">PRECIO DE COMPRA</th>
+                                    <th style="padding: 10px 14px; text-align: center; background: #f1f5f9;">ACCIONES</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalogo-tbody">
+                                <!-- Renderizado dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="padding: 8px 14px; background: #f8fafc; font-size: 0.78rem; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="display: flex; align-items: center; gap: 5px;">
+                            <i class="ph-bold ph-arrows-down-up" style="color: #0284c7;"></i> Desliza la barra para ver todos los productos
+                        </span>
+                        <span id="catalogo-contador-footer" style="font-weight: 700; color: #0284c7;">0 productos</span>
+                    </div>
                 </div>
 
             </div>
@@ -1733,8 +1735,8 @@
     <script src="historial_ventas.js"></script>
     <script src="proformas.js?v=1"></script>
     <script src="promociones.js?v=1"></script>
-    <script src="proveedores.js?v=4"></script>
-    <script src="compras.js?v=1"></script>
+    <script src="proveedores.js?v=9"></script>
+    <script src="compras.js?v=6"></script>
 
 </body>
 </html>

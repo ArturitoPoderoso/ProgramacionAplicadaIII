@@ -620,8 +620,9 @@ async function cargarDetalleCatalogo(idProveedor) {
     try {
         const u = JSON.parse(localStorage.getItem('user')) || {};
         const userRole = u.activeRole || u.role || 'Administrador';
+        const idSede = u.id_sede || 1;
 
-        const res = await fetch(`${API_PROVEEDORES}/proveedores/${idProveedor}/catalogo`, {
+        const res = await fetch(`${API_PROVEEDORES}/proveedores/${idProveedor}/catalogo?id_sede=${idSede}`, {
             headers: { 'X-Role': userRole }
         });
 
@@ -635,11 +636,24 @@ async function cargarDetalleCatalogo(idProveedor) {
         if (headerInfo && data.proveedor) {
             headerInfo.innerHTML = `
                 <div style="font-size: 1.1rem; font-weight: 700; color: #0f172a;">${data.proveedor.razon_social}</div>
-                <div style="font-size: 0.85rem; color: #64748b; display: flex; gap: 15px; margin-top: 4px;">
+                <div style="font-size: 0.85rem; color: #64748b; display: flex; gap: 14px; margin-top: 4px; align-items: center;">
                     <span><strong>RUC:</strong> ${data.proveedor.ruc}</span>
                     <span><strong>Contacto:</strong> ${data.proveedor.nombre_contacto || '---'}</span>
+                    <span style="background: #e0f2fe; color: #0369a1; padding: 2px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">
+                        <i class="ph ph-map-pin"></i> Sede: ${data.proveedor.sede_nombre || 'General'}
+                    </span>
                 </div>
             `;
+        }
+
+        const badgeTotal = document.getElementById('catalogo-badge-total');
+        const footerContador = document.getElementById('catalogo-contador-footer');
+        const cantProds = (data.productos || []).length;
+        if (badgeTotal) {
+            badgeTotal.textContent = `${cantProds} producto${cantProds !== 1 ? 's' : ''}`;
+        }
+        if (footerContador) {
+            footerContador.textContent = `${cantProds} producto${cantProds !== 1 ? 's' : ''}`;
         }
 
         if (!data.productos || data.productos.length === 0) {

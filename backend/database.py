@@ -1,8 +1,12 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # Usar psycopg2 para mayor velocidad y soporte nativo C
-SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://postgres.ilkphmcbusmlwouourfa:ARTURO4321%40luis@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+DEFAULT_DB_URL = "postgresql+psycopg2://postgres.ilkphmcbusmlwouourfa:ARTURO4321%40luis@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
