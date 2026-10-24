@@ -2,13 +2,22 @@ var API_URL = 'http://localhost:8000/api';
 let productosGlobal = [];
 let carrito = [];
 
+let promocionesActivas = [];
+
 async function cargarProductosCaja() {
     try {
         const user = JSON.parse(localStorage.getItem('user'));
         const sedeId = (user && user.id_sede) ? user.id_sede : 1;
-        const response = await fetch(`${API_URL}/productos?sede_id=${sedeId}`);
-        productosGlobal = await response.json();
+        const [resProd, resPromo] = await Promise.all([
+            fetch(`${API_URL}/productos?sede_id=${sedeId}`),
+            fetch(`${API_URL}/promociones/activas`)
+        ]);
+        productosGlobal = await resProd.json();
+        if (resPromo.ok) {
+            promocionesActivas = await resPromo.json();
+        }
         renderProductos(productosGlobal);
+        renderCarrito();
     } catch (error) {
         console.error('Error cargando productos para caja:', error);
     }
@@ -54,17 +63,22 @@ function renderProductos(productos) {
     });
 }
 
+let _filterTimeout = null;
 function filtrarProductos() {
-    const input = document.getElementById('search-pos');
-    if (!input) return;
-    const texto = input.value.toLowerCase().trim();
-    const filtrados = productosGlobal.filter(p => 
-        (p.nombre || '').toLowerCase().includes(texto) || 
-        (p.codigo_producto || '').toLowerCase().includes(texto) ||
-        (p.categoria || '').toLowerCase().includes(texto)
-    );
-    renderProductos(filtrados);
+    clearTimeout(_filterTimeout);
+    _filterTimeout = setTimeout(() => {
+        const input = document.getElementById('search-pos');
+        if (!input) return;
+        const texto = input.value.toLowerCase().trim();
+        const filtrados = productosGlobal.filter(p => 
+            (p.nombre || '').toLowerCase().includes(texto) || 
+            (p.codigo_producto || '').toLowerCase().includes(texto) ||
+            (p.categoria || '').toLowerCase().includes(texto)
+        );
+        renderProductos(filtrados);
+    }, 200);
 }
+
 
 function agregarAlCarrito(producto) {
     if (producto.stock_actual <= 0) {
@@ -91,6 +105,7 @@ function agregarAlCarrito(producto) {
     } else {
         carrito.push({
             id_producto: producto.id_producto,
+            id_categoria: producto.id_categoria,
             nombre: producto.nombre,
             codigo: producto.codigo_producto,
             precio_unitario: parseFloat(producto.precio_venta) || 0,
@@ -195,17 +210,58 @@ function renderCarrito() {
         container.appendChild(div);
     });
 
-    // Calcular Descuento Global
-    let rawVal = inputDesc ? String(inputDesc.value || '0').replace(',', '.') : '0';
-    let descInputVal = parseFloat(rawVal);
-    if (isNaN(descInputVal) || descInputVal < 0) descInputVal = 0;
+    // 1. Descuentos por Temporada Activa (Automáticos)
+    let descuentoTemporada = 0;
+    let nombreCampañaActiva = '';
 
-    let descuentoGlobal = 0;
-    if (tipoDesc === '%') {
-        descuentoGlobal = (subtotalBruto * descInputVal) / 100;
-    } else {
-        descuentoGlobal = descInputVal;
+    if (promocionesActivas && promocionesActivas.length > 0) {
+        promocionesActivas.forEach(promo => {
+            carrito.forEach(item => {
+                const itemSubtotal = item.cantidad * item.precio_unitario;
+                let aplica = false;
+                if (promo.aplica_a === 'TODOS') aplica = true;
+                else if (promo.aplica_a === 'CATEGORIA' && promo.id_categoria && parseInt(promo.id_categoria) === parseInt(item.id_categoria)) aplica = true;
+                else if (promo.aplica_a === 'PRODUCTO' && promo.id_producto && parseInt(promo.id_producto) === parseInt(item.id_producto)) aplica = true;
+
+                if (aplica) {
+                    nombreCampañaActiva = promo.nombre;
+                    if (promo.tipo_descuento === 'PORCENTAJE') {
+                        descuentoTemporada += (itemSubtotal * promo.valor) / 100;
+                    } else {
+                        descuentoTemporada += Math.min(itemSubtotal, promo.valor * item.cantidad);
+                    }
+                }
+            });
+        });
     }
+
+    const bannerPromo = document.getElementById('pos-promo-banner');
+    const lblPromoNom = document.getElementById('pos-promo-nombre');
+    const lblPromoMonto = document.getElementById('pos-promo-monto');
+
+    if (descuentoTemporada > 0 && bannerPromo) {
+        bannerPromo.style.display = 'block';
+        if (lblPromoNom) lblPromoNom.textContent = `🔥 ${nombreCampañaActiva}`;
+        if (lblPromoMonto) lblPromoMonto.textContent = `-S/ ${descuentoTemporada.toFixed(2)}`;
+    } else if (bannerPromo) {
+        bannerPromo.style.display = 'none';
+    }
+
+    // 2. Descuento Autorizado por Supervisor
+    let descuentoSupervisor = 0;
+    if (supervisorAutorizadoInfo) {
+        let rawVal = inputDesc ? String(inputDesc.value || '0').replace(',', '.') : '0';
+        let descInputVal = parseFloat(rawVal);
+        if (isNaN(descInputVal) || descInputVal < 0) descInputVal = 0;
+
+        if (tipoDesc === '%') {
+            descuentoSupervisor = (subtotalBruto * descInputVal) / 100;
+        } else {
+            descuentoSupervisor = descInputVal;
+        }
+    }
+
+    const descuentoGlobal = descuentoTemporada + descuentoSupervisor;
 
     // REGLA DE ORO DE DESCUENTOS: Verificar que ningún producto se venda por debajo de su precio_compra
     let tieneError = false;
@@ -288,15 +344,92 @@ async function procesarVenta() {
     const tipoDescEl = document.getElementById('pos-tipo-descuento');
     const tipoDesc = tipoDescEl ? tipoDescEl.value : 'S/';
 
-    const clienteNombre = clienteNomInput && clienteNomInput.value.trim() ? clienteNomInput.value.trim() : 'Público General';
-    const clienteDoc = clienteDocInput && clienteDocInput.value.trim() ? clienteDocInput.value.trim() : '----------------';
+    const clienteNombre = clienteNomInput ? clienteNomInput.value.trim() : '';
+    const clienteDoc = clienteDocInput ? clienteDocInput.value.trim() : '';
 
-    let rawVal = inputDesc ? String(inputDesc.value || '0').replace(',', '.') : '0';
-    let descInputVal = parseFloat(rawVal);
-    if (isNaN(descInputVal) || descInputVal < 0) descInputVal = 0;
+    if (clienteNomInput) clienteNomInput.style.border = '1px solid #cbd5e1';
+    if (clienteDocInput) clienteDocInput.style.border = '1px solid #cbd5e1';
+
+    // Validación obligatoria: Nombre de Cliente
+    if (!clienteNombre) {
+        if (clienteNomInput) {
+            clienteNomInput.style.border = '2px solid #ef4444';
+            clienteNomInput.focus();
+        }
+        if (typeof showNotification === 'function') {
+            showNotification('El Nombre del Cliente es obligatorio para procesar la venta.', 'error');
+        } else {
+            alert('El Nombre del Cliente es obligatorio para procesar la venta.');
+        }
+        return;
+    }
+
+    // Validación obligatoria: DNI / RUC
+    if (!clienteDoc) {
+        if (clienteDocInput) {
+            clienteDocInput.style.border = '2px solid #ef4444';
+            clienteDocInput.focus();
+        }
+        if (typeof showNotification === 'function') {
+            showNotification('El DNI o RUC del Cliente es obligatorio para procesar la venta.', 'error');
+        } else {
+            alert('El DNI o RUC del Cliente es obligatorio para procesar la venta.');
+        }
+        return;
+    }
+
+    if (clienteDoc.length < 8) {
+        if (clienteDocInput) {
+            clienteDocInput.style.border = '2px solid #ef4444';
+            clienteDocInput.focus();
+        }
+        if (typeof showNotification === 'function') {
+            showNotification('El documento debe tener al menos 8 caracteres (DNI: 8 dígitos / RUC: 11 dígitos).', 'error');
+        } else {
+            alert('El documento debe tener al menos 8 caracteres (DNI: 8 dígitos / RUC: 11 dígitos).');
+        }
+        return;
+    }
 
     let subtotalBruto = carrito.reduce((acc, i) => acc + (i.cantidad * i.precio_unitario), 0);
-    let descuentoTotal = (tipoDesc === '%') ? (subtotalBruto * descInputVal) / 100 : descInputVal;
+
+    // 1. Descuento por Temporada Activa
+    let descuentoTemporada = 0;
+    if (promocionesActivas && promocionesActivas.length > 0) {
+        promocionesActivas.forEach(promo => {
+            carrito.forEach(item => {
+                const itemSub = item.cantidad * item.precio_unitario;
+                let aplica = false;
+                if (promo.aplica_a === 'TODOS') aplica = true;
+                else if (promo.aplica_a === 'CATEGORIA' && promo.id_categoria && parseInt(promo.id_categoria) === parseInt(item.id_categoria)) aplica = true;
+                else if (promo.aplica_a === 'PRODUCTO' && promo.id_producto && parseInt(promo.id_producto) === parseInt(item.id_producto)) aplica = true;
+
+                if (aplica) {
+                    if (promo.tipo_descuento === 'PORCENTAJE') {
+                        descuentoTemporada += (itemSub * promo.valor) / 100;
+                    } else {
+                        descuentoTemporada += Math.min(itemSub, promo.valor * item.cantidad);
+                    }
+                }
+            });
+        });
+    }
+
+    // 2. Descuento Autorizado por Supervisor
+    let descuentoSupervisor = 0;
+    if (supervisorAutorizadoInfo) {
+        let rawVal = inputDesc ? String(inputDesc.value || '0').replace(',', '.') : '0';
+        let descInputVal = parseFloat(rawVal);
+        if (isNaN(descInputVal) || descInputVal < 0) descInputVal = 0;
+
+        if (tipoDesc === '%') {
+            descuentoSupervisor = (subtotalBruto * descInputVal) / 100;
+        } else {
+            descuentoSupervisor = descInputVal;
+        }
+    }
+
+    let descuentoTotal = descuentoTemporada + descuentoSupervisor;
 
     // Validación cliente antes de enviar
     for (let item of carrito) {
@@ -364,6 +497,7 @@ async function procesarVenta() {
             if (clienteNomInput) clienteNomInput.value = '';
             if (clienteDocInput) clienteDocInput.value = '';
             if (inputDesc) inputDesc.value = '';
+            cancelarDescuentoSupervisor();
             renderCarrito();
 
             cargarProductosCaja();
@@ -510,3 +644,88 @@ function mostrarBoletaVenta(data) {
 function imprimirBoleta() {
     window.print();
 }
+
+// ----------------------------------------------------
+// Lógica de Autorización Rápida de Supervisor (Caja)
+// ----------------------------------------------------
+let supervisorAutorizadoInfo = null;
+
+function abrirModalAutorizacionSupervisor() {
+    const user = JSON.parse(localStorage.getItem('user')) || {};
+    const role = user.activeRole || user.role || 'Vendedor';
+
+    if (role === 'Supervisor' || role === 'Administrador') {
+        const nombreSup = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || role;
+        supervisorAutorizadoInfo = { supervisor: nombreSup, id: user.id };
+        activarCajaDescuentoSupervisor(nombreSup);
+        if (typeof showNotification === 'function') {
+            showNotification(`Descuento habilitado con tu rol de ${role}`, 'success');
+        }
+        return;
+    }
+
+    document.getElementById('form-autorizacion-supervisor').reset();
+    const modal = document.getElementById('modal-autorizacion-supervisor');
+    if (modal) modal.classList.add('active');
+}
+
+async function validarAutorizacionSupervisor(e) {
+    e.preventDefault();
+    const username = document.getElementById('sup-auth-user').value.trim();
+    const password = document.getElementById('sup-auth-pass').value.trim();
+
+    try {
+        const response = await fetch(`${API_URL}/supervisor/autorizar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.autorizado) {
+            supervisorAutorizadoInfo = data;
+            activarCajaDescuentoSupervisor(data.supervisor);
+            const modal = document.getElementById('modal-autorizacion-supervisor');
+            if (modal) modal.classList.remove('active');
+
+            if (typeof showNotification === 'function') {
+                showNotification(`¡Autorizado por ${data.supervisor}! Descuento habilitado.`, 'success');
+            }
+        } else {
+            if (typeof showNotification === 'function') {
+                showNotification(data.error || 'Credenciales de supervisor incorrectas', 'error');
+            } else {
+                alert(data.error || 'Credenciales incorrectas');
+            }
+        }
+    } catch (err) {
+        if (typeof showNotification === 'function') {
+            showNotification('Error de conexión al verificar supervisor', 'error');
+        }
+    }
+}
+
+function activarCajaDescuentoSupervisor(supervisorNombre) {
+    const box = document.getElementById('pos-supervisor-discount-box');
+    const btn = document.getElementById('btn-solicitar-autorizacion-sup');
+    const lbl = document.getElementById('pos-sup-autorizado-lbl');
+
+    if (box) box.style.display = 'block';
+    if (btn) btn.style.display = 'none';
+    if (lbl) lbl.textContent = `Autorizado por: ${supervisorNombre}`;
+}
+
+function cancelarDescuentoSupervisor() {
+    supervisorAutorizadoInfo = null;
+    const box = document.getElementById('pos-supervisor-discount-box');
+    const btn = document.getElementById('btn-solicitar-autorizacion-sup');
+    const inputDesc = document.getElementById('pos-descuento-val');
+
+    if (box) box.style.display = 'none';
+    if (btn) btn.style.display = 'flex';
+    if (inputDesc) inputDesc.value = '';
+
+    renderCarrito();
+}
+

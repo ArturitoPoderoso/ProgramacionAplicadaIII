@@ -93,3 +93,22 @@ class VentaResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- Esquemas de Promociones y Autorización ---
+
+class PromocionCreate(BaseModel):
+    nombre: str
+    tipo_descuento: str
+    valor: float
+    aplica_a: str
+    id_sede: Optional[int] = None
+    id_categoria: Optional[int] = None
+    id_producto: Optional[int] = None
+    fecha_inicio: str
+    fecha_fin: str
+    id_usuario_creador: Optional[int] = None
+
+class SupervisorAutorizacion(BaseModel):
+    username: str
+    password: str
+

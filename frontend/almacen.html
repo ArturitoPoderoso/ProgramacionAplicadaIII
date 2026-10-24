@@ -55,10 +55,18 @@
 
             <div class="dashboard-area">
                 <div class="actions-bar">
-                    <div class="action-buttons">
+                    <div class="action-buttons" style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button class="btn-action" onclick="abrirModalCrearProducto()">
                             <i class="ph ph-plus"></i>
                             Nuevo Producto
+                        </button>
+                        <button class="btn-action" style="background: #f59e0b; color: white;" onclick="abrirModalCrearCategoria()">
+                            <i class="ph ph-folder-plus"></i>
+                            Nueva Categoría
+                        </button>
+                        <button class="btn-action" style="background: #6366f1; color: white;" onclick="abrirModalCrearSubcategoria()">
+                            <i class="ph ph-tree-structure"></i>
+                            Nueva Subcategoría
                         </button>
                     </div>
                     
@@ -77,6 +85,7 @@
                                 <th>CÓDIGO</th>
                                 <th>PRODUCTO</th>
                                 <th>CATEGORÍA</th>
+                                <th>SUBCATEGORÍA</th>
                                 <th>STOCK</th>
                                 <th>MIN.</th>
                                 <th>P. COMPRA</th>
@@ -100,22 +109,29 @@
             </div>
             <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group">
-                    <label>Código de Producto</label>
-                    <input type="text" id="new-prod-codigo" placeholder="Ej: PROD-001">
+                    <label>Código de Producto (Autogenerado)</label>
+                    <input type="text" id="new-prod-codigo" placeholder="Ej: PROD-00001" readonly style="background-color: #f1f5f9; cursor: not-allowed; font-weight: 700; color: #334155;">
                 </div>
+
                 <div class="form-group">
                     <label>Nombre del Producto</label>
-                    <input type="text" id="new-prod-nombre" placeholder="Ej: Martillo">
-                </div>
-                <div class="form-group">
-                    <label>Categoría</label>
-                    <select class="form-select" id="new-prod-categoria">
-                        <option value="">Seleccione...</option>
-                    </select>
+                    <input type="text" id="new-prod-nombre" placeholder="Ej: Martillo de Uña 16oz">
                 </div>
                 <div class="form-group">
                     <label>Descripción</label>
-                    <input type="text" id="new-prod-desc">
+                    <input type="text" id="new-prod-desc" placeholder="Ej: Mango de madera con cabeza de acero">
+                </div>
+                <div class="form-group">
+                    <label>Categoría Principal</label>
+                    <select class="form-select" id="new-prod-categoria-padre" onchange="onCategoriaPadreChange()">
+                        <option value="">Seleccione Categoría...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subcategoría</label>
+                    <select class="form-select" id="new-prod-subcategoria">
+                        <option value="">Seleccione Subcategoría...</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Precio Compra</label>
@@ -126,17 +142,71 @@
                     <input type="number" id="new-prod-pventa" step="0.1" value="0">
                 </div>
                 <div class="form-group">
-                    <label>Stock Inicial</label>
-                    <input type="number" id="new-prod-stock" value="0">
+                    <label>Stock Inicial (Unidades)</label>
+                    <input type="number" id="new-prod-stock" value="10">
                 </div>
                 <div class="form-group">
                     <label>Stock Mínimo (Alerta)</label>
-                    <input type="number" id="new-prod-minimo" value="0">
+                    <input type="number" id="new-prod-minimo" value="5">
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal('modal-crear-producto')">Cancelar</button>
-                <button class="btn-save" style="position:static" onclick="crearProducto()">Guardar</button>
+                <button class="btn-save" style="position:static" onclick="crearProducto()">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Crear Categoría -->
+    <div class="modal-overlay" id="modal-crear-categoria">
+        <div class="modal-container" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Nueva Categoría Principal</h3>
+                <button class="modal-close" onclick="closeModal('modal-crear-categoria')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="form-group">
+                    <label>Nombre de Categoría <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="new-cat-nombre" placeholder="Ej: Herramientas Manuales">
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input type="text" id="new-cat-desc" placeholder="Ej: Martillos, alicates, destornilladores">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-crear-categoria')">Cancelar</button>
+                <button class="btn-save" style="position:static; background: #f59e0b;" onclick="guardarCategoria()">Guardar Categoría</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Crear Subcategoría -->
+    <div class="modal-overlay" id="modal-crear-subcategoria">
+        <div class="modal-container" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>Nueva Subcategoría</h3>
+                <button class="modal-close" onclick="closeModal('modal-crear-subcategoria')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="form-group">
+                    <label>Categoría Padre <span style="color: #ef4444;">*</span></label>
+                    <select class="form-select" id="new-subcat-categoria-padre">
+                        <option value="">Seleccione Categoría Padre...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nombre de Subcategoría <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="new-subcat-nombre" placeholder="Ej: Alicates y Tenazas">
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input type="text" id="new-subcat-desc" placeholder="Ej: Alicates de presión, corte, alambre">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-crear-subcategoria')">Cancelar</button>
+                <button class="btn-save" style="position:static; background: #6366f1;" onclick="guardarSubcategoria()">Guardar Subcategoría</button>
             </div>
         </div>
     </div>
@@ -144,3 +214,4 @@
     <script src="almacen.js"></script>
 </body>
 </html>
+

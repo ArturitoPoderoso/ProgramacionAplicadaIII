@@ -113,6 +113,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Toggle para Submenú Compras (HU 19, 20 & 21)
+    const btnCompras = document.getElementById('btn-compras');
+    const subgroupCompras = document.getElementById('subgroup-compras');
+    if (btnCompras && subgroupCompras) {
+        btnCompras.addEventListener('click', (e) => {
+            e.preventDefault();
+            subgroupCompras.classList.toggle('collapsed');
+            const caret = btnCompras.querySelector('.ph-caret-down');
+            if (caret) {
+                if (subgroupCompras.classList.contains('collapsed')) {
+                    caret.style.transform = 'rotate(-90deg)';
+                } else {
+                    caret.style.transform = 'rotate(0deg)';
+                }
+                caret.style.transition = 'transform 0.3s ease';
+            }
+        });
+    }
+
     // Toggle de pestañas en Perfil (si existen)
     const tabPersonal = document.getElementById('tab-personal');
     const tabPassword = document.getElementById('tab-password');
@@ -528,21 +547,35 @@ async function guardarPerfil(btnElement) {
 }
 
 function aplicarReglasVisibilidadNavegacion(role) {
+    const u = JSON.parse(localStorage.getItem('user')) || {};
+    const rolesList = [];
+    if (u.activeRole) rolesList.push(String(u.activeRole));
+    if (u.role && typeof u.role === 'string') rolesList.push(u.role);
+    if (Array.isArray(u.roles)) u.roles.forEach(r => rolesList.push(String(r)));
+    if (role) rolesList.push(String(role));
+
+    const rolesStr = rolesList.join(' ').toLowerCase();
+
+    const isAdmin = rolesStr.includes('admin');
+    const isSupervisor = rolesStr.includes('supervisor');
+    const isVendedor = rolesStr.includes('vendedor') && !isAdmin && !isSupervisor;
+
     const elSeguridad = document.getElementById('nav-seguridad');
     const elPerfilVendedor = document.getElementById('nav-mi-perfil-vendedor');
     const elProductos = document.getElementById('nav-productos');
     const elVentas = document.getElementById('nav-ventas');
     const elHistorialVentas = document.getElementById('nav-historial-ventas');
+    const elPromociones = document.getElementById('nav-promociones');
     const elProformas = document.getElementById('nav-proformas');
     const elClientes = document.getElementById('nav-clientes');
-    const elCompras = document.getElementById('nav-compras');
+    const elCompras = document.getElementById('nav-compras-group') || document.getElementById('nav-compras');
     const elProveedores = document.getElementById('nav-proveedores');
     const elGanancias = document.getElementById('nav-ganancias');
     const elBoletas = document.getElementById('nav-boletas');
     const elFacturas = document.getElementById('nav-facturas');
     const btnNuevoProd = document.getElementById('btn-nuevo-producto');
 
-    if (role === 'Vendedor') {
+    if (isVendedor) {
         if (elSeguridad) elSeguridad.style.display = 'none';
         if (elPerfilVendedor) elPerfilVendedor.style.display = 'flex';
         if (elVentas) elVentas.style.display = 'flex';
@@ -552,20 +585,22 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elBoletas) elBoletas.style.display = 'flex';
         if (elFacturas) elFacturas.style.display = 'flex';
 
+        if (elPromociones) elPromociones.style.display = 'none';
         if (elHistorialVentas) elHistorialVentas.style.display = 'none';
         if (elCompras) elCompras.style.display = 'none';
         if (elProveedores) elProveedores.style.display = 'none';
         if (elGanancias) elGanancias.style.display = 'none';
         if (btnNuevoProd) btnNuevoProd.style.display = 'none';
 
-    } else if (role === 'Supervisor') {
+    } else if (isSupervisor) {
         if (elSeguridad) elSeguridad.style.display = 'block';
         if (elPerfilVendedor) elPerfilVendedor.style.display = 'none';
         if (elProductos) elProductos.style.display = 'flex';
         if (elVentas) elVentas.style.display = 'flex';
         if (elHistorialVentas) elHistorialVentas.style.display = 'flex';
+        if (elPromociones) elPromociones.style.display = 'flex';
         if (elProformas) elProformas.style.display = 'none';
-        if (elCompras) elCompras.style.display = 'flex';
+        if (elCompras) elCompras.style.display = 'block';
         if (elProveedores) elProveedores.style.display = 'flex';
         if (elClientes) elClientes.style.display = 'flex';
         if (elBoletas) elBoletas.style.display = 'flex';
@@ -581,8 +616,9 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elProductos) elProductos.style.display = 'flex';
         if (elVentas) elVentas.style.display = 'flex';
         if (elHistorialVentas) elHistorialVentas.style.display = 'flex';
+        if (elPromociones) elPromociones.style.display = 'flex';
         if (elProformas) elProformas.style.display = 'none';
-        if (elCompras) elCompras.style.display = 'flex';
+        if (elCompras) elCompras.style.display = 'block';
         if (elProveedores) elProveedores.style.display = 'flex';
         if (elClientes) elClientes.style.display = 'flex';
         if (elGanancias) elGanancias.style.display = 'flex';
@@ -593,10 +629,22 @@ function aplicarReglasVisibilidadNavegacion(role) {
     }
 }
 
+function getUsuarioRolActual() {
+    const u = JSON.parse(localStorage.getItem('user')) || {};
+    if (u.activeRole) return u.activeRole;
+    if (u.role && typeof u.role === 'string') return u.role;
+    if (Array.isArray(u.roles) && u.roles.length > 0) return u.roles[0];
+    if (Array.isArray(u.perfiles) && u.perfiles.length > 0) {
+        const first = u.perfiles[0];
+        return typeof first === 'string' ? first : (first.nombre || 'Vendedor');
+    }
+    return 'Vendedor';
+}
+
 // Check role on load
 document.addEventListener('DOMContentLoaded', () => {
     const currentUser = JSON.parse(localStorage.getItem('user')) || {};
-    const currentRole = currentUser.activeRole || currentUser.role || 'Administrador';
+    const currentRole = getUsuarioRolActual();
 
     // Aplicar reglas de visibilidad al menú lateral
     aplicarReglasVisibilidadNavegacion(currentRole);

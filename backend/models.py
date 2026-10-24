@@ -82,6 +82,18 @@ class Categoria(Base):
     estado_registro = Column(Integer, default=1)
 
     productos = relationship("Producto", back_populates="categoria")
+    subcategorias = relationship("Subcategoria", back_populates="categoria", cascade="all, delete-orphan")
+
+class Subcategoria(Base):
+    __tablename__ = "subcategorias"
+    id_subcategoria = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    descripcion = Column(String)
+    id_categoria = Column(Integer, ForeignKey('categorias.id_categoria', ondelete="CASCADE"), nullable=False)
+    estado_registro = Column(Integer, default=1)
+
+    categoria = relationship("Categoria", back_populates="subcategorias")
+    productos = relationship("Producto", back_populates="subcategoria_rel")
 
 class Producto(Base):
     __tablename__ = "productos"
@@ -89,13 +101,16 @@ class Producto(Base):
     codigo_producto = Column(String, unique=True, index=True, nullable=False)
     nombre = Column(String, nullable=False)
     descripcion = Column(String)
-    id_categoria = Column(Integer, ForeignKey('categorias.id_categoria'))
+    id_categoria = Column(Integer, ForeignKey('categorias.id_categoria'), nullable=True)
+    id_subcategoria = Column(Integer, ForeignKey('subcategorias.id_subcategoria'), nullable=True)
     estado_registro = Column(Integer, default=1)
 
     categoria = relationship("Categoria", back_populates="productos")
+    subcategoria_rel = relationship("Subcategoria", back_populates="productos")
     inventarios = relationship("InventarioSede", back_populates="producto")
     movimientos = relationship("MovimientoAlmacen", back_populates="producto")
     detalles_venta = relationship("DetalleVenta", back_populates="producto")
+
 
 class InventarioSede(Base):
     __tablename__ = "inventario_sedes"
@@ -187,4 +202,120 @@ class DetalleProforma(Base):
 
     proforma = relationship("Proforma", back_populates="detalles")
     producto = relationship("Producto")
+
+
+# --- Módulo de Promociones / Descuentos por Temporada ---
+
+class Promocion(Base):
+    __tablename__ = "promociones"
+    id_promocion = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(100), nullable=False)
+    tipo_descuento = Column(String(20), nullable=False, default="PORCENTAJE")
+    valor = Column(Float, nullable=False, default=0.0)
+    aplica_a = Column(String(20), nullable=False, default="TODOS")
+    id_sede = Column(Integer, ForeignKey('sedes.id_sede', ondelete="SET NULL"), nullable=True)
+    id_categoria = Column(Integer, ForeignKey('categorias.id_categoria', ondelete="SET NULL"), nullable=True)
+    id_producto = Column(Integer, ForeignKey('productos.id_producto', ondelete="SET NULL"), nullable=True)
+    fecha_inicio = Column(String(10), nullable=False)
+    fecha_fin = Column(String(10), nullable=False)
+    estado_registro = Column(Integer, default=1)
+    id_usuario_creador = Column(Integer, ForeignKey('usuarios.id_usuario'), nullable=True)
+    fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
+
+    sede = relationship("Sede")
+    categoria = relationship("Categoria")
+    producto = relationship("Producto")
+    creador = relationship("User")
+
+
+# --- Módulo de Proveedores y Compras (Escalable para HU 19, 20, 21, 22, 23, 24) ---
+
+class Proveedor(Base):
+    __tablename__ = "proveedores"
+    id_proveedor = Column(Integer, primary_key=True, index=True)
+    id_sede = Column(Integer, ForeignKey('sedes.id_sede'), nullable=True)
+    ruc = Column(String(20), index=True, nullable=False)
+    razon_social = Column(String(150), nullable=False)
+    nombre_contacto = Column(String(100), default="")
+    telefono = Column(String(30), default="")
+    correo = Column(String(120), default="")
+    direccion = Column(String(250), default="")
+    condiciones_pago = Column(String(80), nullable=False, default="Contado")
+    estado_registro = Column(Integer, default=1)
+    fecha_registro = Column(DateTime(timezone=True), server_default=func.now())
+
+    sede = relationship("Sede")
+    productos_asociados = relationship("ProveedorProducto", back_populates="proveedor", cascade="all, delete-orphan")
+    ordenes_compra = relationship("OrdenCompra", back_populates="proveedor")
+    evaluaciones = relationship("EvaluacionProveedor", back_populates="proveedor", cascade="all, delete-orphan")
+
+
+class ProveedorProducto(Base):
+    __tablename__ = "proveedor_productos"
+    id_proveedor_producto = Column(Integer, primary_key=True, index=True)
+    id_proveedor = Column(Integer, ForeignKey('proveedores.id_proveedor', ondelete="CASCADE"), nullable=False)
+    id_producto = Column(Integer, ForeignKey('productos.id_producto', ondelete="CASCADE"), nullable=False)
+    precio_compra = Column(Float, nullable=False)
+    codigo_proveedor = Column(String(50), default="")
+    estado_registro = Column(Integer, default=1)
+    fecha_registro = Column(DateTime(timezone=True), server_default=func.now())
+
+    proveedor = relationship("Proveedor", back_populates="productos_asociados")
+    producto = relationship("Producto")
+
+
+class OrdenCompra(Base):
+    __tablename__ = "ordenes_compra"
+    id_orden_compra = Column(Integer, primary_key=True, index=True)
+    correlativo = Column(String(30), unique=True, index=True, nullable=False)
+    id_proveedor = Column(Integer, ForeignKey('proveedores.id_proveedor'), nullable=False)
+    id_sede = Column(Integer, ForeignKey('sedes.id_sede'), nullable=False)
+    id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'), nullable=False)
+    fecha_emision = Column(DateTime(timezone=True), server_default=func.now())
+    fecha_esperada = Column(String(15), default="")
+    fecha_recepcion = Column(DateTime(timezone=True), nullable=True)
+    estado = Column(String(25), default="PENDIENTE")  # PENDIENTE, RECIBIDA, ANULADA
+    total = Column(Float, default=0.0)
+    observacion = Column(Text, default="")
+    estado_registro = Column(Integer, default=1)
+
+    proveedor = relationship("Proveedor", back_populates="ordenes_compra")
+    sede = relationship("Sede")
+    usuario = relationship("User")
+    detalles = relationship("DetalleOrdenCompra", back_populates="orden_compra", cascade="all, delete-orphan")
+    evaluaciones = relationship("EvaluacionProveedor", back_populates="orden_compra")
+
+
+class DetalleOrdenCompra(Base):
+    __tablename__ = "detalle_ordenes_compra"
+    id_detalle_oc = Column(Integer, primary_key=True, index=True)
+    id_orden_compra = Column(Integer, ForeignKey('ordenes_compra.id_orden_compra', ondelete="CASCADE"), nullable=False)
+    id_producto = Column(Integer, ForeignKey('productos.id_producto'), nullable=False)
+    cantidad_solicitada = Column(Integer, nullable=False)
+    cantidad_recibida = Column(Integer, default=0)
+    precio_unitario = Column(Float, nullable=False)
+    subtotal = Column(Float, nullable=False)
+
+    orden_compra = relationship("OrdenCompra", back_populates="detalles")
+    producto = relationship("Producto")
+
+
+class EvaluacionProveedor(Base):
+    __tablename__ = "evaluaciones_proveedores"
+    id_evaluacion = Column(Integer, primary_key=True, index=True)
+    id_proveedor = Column(Integer, ForeignKey('proveedores.id_proveedor', ondelete="CASCADE"), nullable=False)
+    id_orden_compra = Column(Integer, ForeignKey('ordenes_compra.id_orden_compra', ondelete="SET NULL"), nullable=True)
+    id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'), nullable=False)
+    calificacion = Column(Integer, nullable=False)  # 1 a 5
+    puntualidad = Column(Integer, default=5)
+    calidad = Column(Integer, default=5)
+    observaciones = Column(Text, nullable=False)
+    fecha_evaluacion = Column(DateTime(timezone=True), server_default=func.now())
+    estado_registro = Column(Integer, default=1)
+
+    proveedor = relationship("Proveedor", back_populates="evaluaciones")
+    orden_compra = relationship("OrdenCompra", back_populates="evaluaciones")
+    usuario = relationship("User")
+
+
 

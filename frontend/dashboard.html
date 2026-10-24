@@ -61,19 +61,30 @@
                     <i class="ph-fill ph-clock-counter-clockwise"></i>
                     <span>Historial de Ventas</span>
                 </a>
+
+                <a href="#" onclick="showSection('section-promociones')" class="nav-item" id="nav-promociones" style="display: flex;">
+                    <i class="ph-fill ph-tag"></i>
+                    <span>Descuentos y Promociones</span>
+                </a>
                 
                 <a href="#" class="nav-item" id="nav-clientes">
                     <i class="ph-fill ph-users"></i>
                     <span>Clientes</span>
                 </a>
                 
-                <a href="#" class="nav-item" id="nav-compras">
-                    <i class="ph-fill ph-shopping-cart"></i>
-                    <span>Compras</span>
-                    <i class="ph ph-caret-right ml-auto"></i>
-                </a>
+                <div class="nav-group" id="nav-compras-group">
+                    <a href="#" class="nav-item" id="btn-compras">
+                        <i class="ph-fill ph-shopping-cart"></i>
+                        <span>Compras</span>
+                        <i class="ph ph-caret-down ml-auto"></i>
+                    </a>
+                    <div class="nav-subgroup collapsed" id="subgroup-compras">
+                        <a href="#" onclick="showSection('section-emitir-orden')" class="nav-subitem" id="nav-sub-emitir-orden">Emitir Orden</a>
+                        <a href="#" onclick="showSection('section-historial-compras')" class="nav-subitem" id="nav-sub-historial-compras">Historial Compras</a>
+                    </div>
+                </div>
                 
-                <a href="#" class="nav-item" id="nav-proveedores">
+                <a href="#" class="nav-item" id="nav-proveedores" onclick="showSection('section-proveedores')">
                     <i class="ph-fill ph-truck"></i>
                     <span>Proveedores</span>
                 </a>
@@ -321,12 +332,12 @@
                         <div class="cart-total-section">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
                                 <div class="form-group">
-                                    <label style="font-size: 0.76rem; font-weight: 700;">Cliente</label>
-                                    <input type="text" id="pos-cliente-nombre" placeholder="Público General" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;">
+                                    <label style="font-size: 0.76rem; font-weight: 700;">Cliente <span style="color: #ef4444;">*</span></label>
+                                    <input type="text" id="pos-cliente-nombre" placeholder="Nombre completo" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;" required>
                                 </div>
                                 <div class="form-group">
-                                    <label style="font-size: 0.76rem; font-weight: 700;">DNI / RUC</label>
-                                    <input type="text" id="pos-cliente-doc" placeholder="----------------" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;">
+                                    <label style="font-size: 0.76rem; font-weight: 700;">DNI / RUC <span style="color: #ef4444;">*</span></label>
+                                    <input type="text" id="pos-cliente-doc" placeholder="DNI o RUC" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;" maxlength="11" required>
                                 </div>
                             </div>
                             <div class="form-group" style="margin-bottom: 8px;">
@@ -338,33 +349,13 @@
                                 </select>
                             </div>
 
-                            <!-- Bloque de Descuento Promocional -->
-                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                    <span style="font-size: 0.78rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 4px;">
-                                        <i class="ph-fill ph-tag" style="color: #2563eb;"></i> Descuento / Promoción
-                                    </span>
-                                    <select id="pos-tipo-descuento" onchange="renderCarrito()" style="padding: 2px 6px; font-size: 0.75rem; border-radius: 4px; border: 1px solid #cbd5e1; outline: none;">
-                                        <option value="S/">Soles (S/)</option>
-                                        <option value="%">Porcentaje (%)</option>
-                                    </select>
-                                </div>
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    <input type="number" min="0" step="any" id="pos-descuento-val" oninput="renderCarrito()" placeholder="0.00" style="flex: 1; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; font-weight: 600; outline: none;">
-                                    <span id="pos-descuento-monto-lbl" style="font-size: 0.85rem; font-weight: 700; color: #dc2626;">-S/ 0.00</span>
-                                </div>
-                                <div id="pos-descuento-error-msg" style="font-size: 0.72rem; color: #dc2626; font-weight: 600; margin-top: 6px; display: none; line-height: 1.3;"></div>
-                            </div>
+
 
                             <!-- Desglose de Totales -->
                             <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; margin-bottom: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
                                 <div style="display: flex; justify-content: space-between; color: #64748b;">
                                     <span>Subtotal:</span>
                                     <span id="cart-subtotal" style="font-weight: 600;">S/ 0.00</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; color: #dc2626; display: none;" id="cart-descuento-row">
-                                    <span>Descuento Total:</span>
-                                    <span id="cart-descuento-lbl" style="font-weight: 700;">-S/ 0.00</span>
                                 </div>
                             </div>
 
@@ -449,6 +440,47 @@
                 <tbody id="historial-ventas-tbody">
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<div id="section-promociones" class="app-section" style="display:none;">
+    <div class="dashboard-area">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <h2 style="font-size: 1.35rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="ph-fill ph-tag" style="color: #6366f1;"></i> Descuentos & Promociones por Temporada
+                </h2>
+                <p style="font-size: 0.85rem; color: #64748b; margin: 4px 0 0 0;">Gestión autorizada únicamente para Administradores y Supervisores.</p>
+            </div>
+            <button class="btn-save" style="position: static; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 10px 18px; border-radius: 8px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);" onclick="abrirModalPromocion()">
+                <i class="ph-bold ph-plus-circle" style="font-size: 1.1rem;"></i> + Nueva Promoción
+            </button>
+        </div>
+
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; font-size: 0.82rem; text-align: left;">
+                            <th style="padding: 12px;">CAMPAÑA / NOMBRE</th>
+                            <th style="padding: 12px;">DESCUENTO</th>
+                            <th style="padding: 12px;">APLICA A</th>
+                            <th style="padding: 12px;">FECHA INICIO</th>
+                            <th style="padding: 12px;">FECHA FIN</th>
+                            <th style="padding: 12px;">ESTADO</th>
+                            <th style="padding: 12px; text-align: center;">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="promociones-tbody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 30px; color: #94a3b8; font-style: italic;">
+                                Cargando promociones...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -570,6 +602,320 @@
                     </thead>
                     <tbody id="proformas-historial-tbody">
                         <!-- Carga dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- SECCIÓN: GESTIÓN DE PROVEEDORES (HU 22 & 23) -->
+<!-- ========================================== -->
+<div id="section-proveedores" class="app-section" style="display:none;">
+    <div class="dashboard-area" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Cards Resumen Superior -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                    <i class="ph-fill ph-truck"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Total Proveedores</div>
+                    <div id="prov-stat-total" style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">0</div>
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                    <i class="ph-fill ph-package"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Productos en Catálogos</div>
+                    <div id="prov-stat-prods" style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de Acciones y Filtros -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="position: relative; flex: 1; max-width: 500px;">
+                <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1rem;"></i>
+                <input type="text" id="proveedor-search-input" onkeyup="filtrarProveedores()" placeholder="Buscar por RUC, razón social, contacto o correo..." style="width: 100%; padding: 10px 12px 10px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; outline: none;">
+            </div>
+
+            <button onclick="abrirModalCrearProveedor()" class="btn-save" style="position: static; background: linear-gradient(135deg, #0284c7, #0369a1); display: inline-flex; align-items: center; gap: 8px; font-weight: 700; padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 6px rgba(2,132,199,0.3); border: none; cursor: pointer;">
+                <i class="ph-bold ph-plus" style="font-size: 1rem;"></i>
+                Nuevo Proveedor
+            </button>
+        </div>
+
+        <!-- Tabla de Proveedores -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; font-size: 0.82rem; text-align: left;">
+                            <th style="padding: 12px 16px;">RUC</th>
+                            <th style="padding: 12px 16px;">RAZÓN SOCIAL / EMPRESA</th>
+                            <th style="padding: 12px 16px;">CONTACTO / CELULAR</th>
+                            <th style="padding: 12px 16px;">CORREO</th>
+                            <th style="padding: 12px 16px; text-align: center;">CATÁLOGO PRODUCTOS</th>
+                            <th style="padding: 12px 16px; text-align: center;">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="proveedores-tbody">
+                        <!-- Generado dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- SECCIÓN: EMISIÓN DE ORDEN DE COMPRA (HU 19)            -->
+<!-- ======================================================= -->
+<div id="section-emitir-orden" class="app-section" style="display:none;">
+    <div class="dashboard-area" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Cabecera de Emisión -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div>
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 4px 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="ph-fill ph-file-plus" style="color: #0284c7;"></i> Emitir Orden
+                </h3>
+                <p style="font-size: 0.84rem; color: #64748b; margin: 0;">Selecciona el proveedor y carga sus productos con precios pactados.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">N° Orden:</span>
+                <span id="oc-correlativo-display" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-family: monospace; font-size: 1.05rem; font-weight: 800; padding: 6px 14px; border-radius: 8px;">OC-XXXX</span>
+            </div>
+        </div>
+
+        <!-- Formulario: Proveedor y Fechas -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 16px;">
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 16px;">
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.84rem; color: #334155; margin-bottom: 6px; display: block;">
+                        Proveedor <span style="color: #ef4444;">*</span>
+                    </label>
+                    <select id="oc-select-proveedor" onchange="onProveedorOrdenChange()" class="form-select" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: #0f172a;">
+                        <option value="">-- Seleccionar Proveedor --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.84rem; color: #334155; margin-bottom: 6px; display: block;">
+                        Fecha Llegada
+                    </label>
+                    <input type="date" id="oc-fecha-esperada" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; color: #0f172a;">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.84rem; color: #334155; margin-bottom: 6px; display: block;">
+                        Observaciones
+                    </label>
+                    <input type="text" id="oc-observaciones" placeholder="Ej: Pago 15 días, entrega almacén..." style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem;">
+                </div>
+            </div>
+
+            <!-- Ficha Resumen Rápida del Proveedor Seleccionado -->
+            <div id="oc-proveedor-info-card" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    <div style="font-size: 0.82rem; color: #475569;">
+                        <strong>RUC:</strong> <span id="oc-card-ruc" style="font-family: monospace; font-weight: 700; color: #0f172a;">---</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: #475569;">
+                        <strong>Contacto:</strong> <span id="oc-card-contacto" style="font-weight: 600; color: #0f172a;">---</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: #475569;">
+                        <strong>Celular:</strong> <span id="oc-card-telefono" style="font-weight: 700; color: #059669;">---</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: #475569;">
+                        <strong>Correo:</strong> <span id="oc-card-correo" style="color: #0284c7;">---</span>
+                    </div>
+                </div>
+                <div style="font-size: 0.78rem; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
+                    <i class="ph-bold ph-lock-key"></i> 1 Proveedor
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Selector de Productos del Catálogo del Proveedor -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 16px;">
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <i class="ph-bold ph-package" style="color: #0284c7;"></i> Agregar Productos
+            </h4>
+
+            <div style="display: grid; grid-template-columns: 3fr 1fr 1fr auto; gap: 14px; align-items: flex-end;">
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 4px; display: block;">Producto *</label>
+                    <select id="oc-select-producto" onchange="onProductoOrdenChange()" class="form-select" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem;">
+                        <option value="">-- Seleccionar Producto --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 4px; display: block;">Precio (S/) *</label>
+                    <input type="number" id="oc-item-precio" step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-weight: 700; color: #0284c7;">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 4px; display: block;">Cantidad *</label>
+                    <input type="number" id="oc-item-cantidad" value="1" min="1" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-weight: 700; text-align: center;">
+                </div>
+
+                <button type="button" onclick="agregarItemAOrden()" class="btn-save" style="position: static; background: #0284c7; padding: 10px 20px; font-size: 0.88rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; height: 42px;">
+                    <i class="ph-bold ph-plus"></i> Agregar Ítem
+                </button>
+            </div>
+
+            <!-- Tabla de Ítems de la Orden -->
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-top: 6px;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; font-size: 0.82rem; text-align: left;">
+                            <th style="padding: 10px 14px;">CÓDIGO</th>
+                            <th style="padding: 10px 14px;">PRODUCTO</th>
+                            <th style="padding: 10px 14px; text-align: right;">PRECIO UNITARIO</th>
+                            <th style="padding: 10px 14px; text-align: center;">CANTIDAD</th>
+                            <th style="padding: 10px 14px; text-align: right;">SUBTOTAL</th>
+                            <th style="padding: 10px 14px; text-align: center;">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="oc-items-tbody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 30px; color: #94a3b8; font-style: italic;">
+                                No hay productos agregados a la orden aún. Selecciona un producto y haz clic en <strong>"+ Agregar Ítem"</strong>.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Totales y Botón de Emisión -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                <button type="button" onclick="limpiarFormularioOrden()" class="btn-secondary" style="padding: 10px 18px; font-weight: 600;">
+                    <i class="ph ph-trash"></i> Limpiar Orden
+                </button>
+
+                <div style="display: flex; align-items: center; gap: 24px;">
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.78rem; color: #64748b;">Subtotal Neto: <span id="oc-total-subtotal" style="font-weight: 700; color: #1e293b;">S/. 0.00</span></div>
+                        <div style="font-size: 0.78rem; color: #64748b;">IGV Estimado (18%): <span id="oc-total-igv" style="font-weight: 700; color: #1e293b;">S/. 0.00</span></div>
+                        <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                            Total Orden: <span id="oc-total-general" style="color: #0284c7;">S/. 0.00</span>
+                        </div>
+                    </div>
+
+                    <button type="button" id="btn-emitir-orden-submit" onclick="emitirOrdenCompra()" class="btn-save"
+                            style="position: static; background: linear-gradient(135deg, #0284c7, #0369a1); padding: 12px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35); cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="ph-bold ph-paper-plane-tilt"></i> Emitir Orden
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- SECCIÓN: HISTORIAL DE COMPRAS (HU 20 & 21) -->
+<!-- ======================================================= -->
+<div id="section-historial-compras" class="app-section" style="display:none;">
+    <div class="dashboard-area" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Tarjetas de Resumen KPI -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                    <i class="ph-fill ph-file-text"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Total Órdenes</div>
+                    <div id="kpi-compras-total" style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">0</div>
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                    <i class="ph-fill ph-hourglass-high"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Pendientes</div>
+                    <div id="kpi-compras-pendientes" style="font-size: 1.6rem; font-weight: 800; color: #b45309;">0</div>
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                    <i class="ph-fill ph-hand-coins"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Total Recibido</div>
+                    <div id="kpi-compras-monto" style="font-size: 1.6rem; font-weight: 800; color: #16a34a;">S/. 0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestañas (Tabs) y Barra de Búsqueda -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            
+            <!-- Pestañas Cortas -->
+            <div style="display: flex; gap: 8px;">
+                <button type="button" id="tab-compras-pendientes" onclick="cambiarTabCompras('pendientes')"
+                        style="background: #0284c7; color: white; border: 1px solid #0284c7; padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                    <i class="ph-bold ph-hourglass-medium"></i>
+                    <span>Pendientes</span>
+                    <span id="badge-count-pendientes" style="background: rgba(255,255,255,0.25); color: white; padding: 1px 6px; border-radius: 10px; font-size: 0.75rem;">0</span>
+                </button>
+
+                <button type="button" id="tab-compras-todas" onclick="cambiarTabCompras('todas')"
+                        style="background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    <i class="ph-bold ph-archive-box"></i>
+                    <span>Historial</span>
+                </button>
+            </div>
+
+            <!-- Buscador y Botón Crear -->
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end; max-width: 500px;">
+                <div style="position: relative; width: 100%;">
+                    <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1rem;"></i>
+                    <input type="text" id="compras-search-input" placeholder="Buscar por código OC, proveedor o RUC..."
+                           style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.86rem; outline: none;">
+                </div>
+
+                <button type="button" onclick="showSection('section-emitir-orden')" class="btn-save"
+                        style="position: static; background: #0284c7; padding: 9px 16px; border-radius: 8px; font-weight: 700; font-size: 0.86rem; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer;">
+                    <i class="ph-bold ph-plus"></i> Nueva Orden
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Tabla de Órdenes de Compra -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; font-size: 0.82rem; text-align: left;">
+                            <th style="padding: 12px 16px;">CÓDIGO OC</th>
+                            <th style="padding: 12px 16px;">PROVEEDOR</th>
+                            <th style="padding: 12px 16px;">FECHA EMISIÓN</th>
+                            <th style="padding: 12px 16px;">LLEGADA</th>
+                            <th style="padding: 12px 16px; text-align: right;">TOTAL (S/)</th>
+                            <th style="padding: 12px 16px; text-align: center;">ESTADO</th>
+                            <th style="padding: 12px 16px; text-align: center;">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compras-historial-tbody">
+                        <!-- Generado dinámicamente -->
                     </tbody>
                 </table>
             </div>
@@ -827,17 +1173,35 @@
                 'section-productos': 'ALMACÉN E INVENTARIO',
                 'section-ventas': 'PUNTO DE VENTA (CAJA)',
                 'section-historial-ventas': 'HISTORIAL DE VENTAS',
-                'section-proformas': 'EMISIÓN DE PROFORMAS / COTIZACIONES'
+                'section-promociones': 'DESCUENTOS Y PROMOCIONES',
+                'section-proformas': 'EMISIÓN DE PROFORMAS / COTIZACIONES',
+                'section-proveedores': 'GESTIÓN DE PROVEEDORES',
+                'section-emitir-orden': 'EMITIR ORDEN',
+                'section-historial-compras': 'HISTORIAL COMPRAS'
             };
             const titleEl = document.getElementById('global-page-title');
             if (titleEl) {
                 titleEl.textContent = titles[sectionId] || 'SISTEMA JESMI';
             }
 
-            // 4. Marca activa en la barra lateral
+            // 4. Marca activa en la barra lateral (ítems principales y subítems)
             document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-nav .nav-subitem').forEach(el => el.classList.remove('active'));
+
             const clicked = Array.from(document.querySelectorAll('.sidebar-nav .nav-item')).find(el => el.getAttribute('onclick') === `showSection('${sectionId}')`);
             if (clicked) clicked.classList.add('active');
+
+            const clickedSub = Array.from(document.querySelectorAll('.sidebar-nav .nav-subitem')).find(el => el.getAttribute('onclick') === `showSection('${sectionId}')`);
+            if (clickedSub) {
+                clickedSub.classList.add('active');
+                const parentGroup = clickedSub.closest('.nav-subgroup');
+                if (parentGroup && parentGroup.classList.contains('collapsed')) {
+                    parentGroup.classList.remove('collapsed');
+                    const parentToggle = parentGroup.previousElementSibling;
+                    const caret = parentToggle?.querySelector('.ph-caret-down');
+                    if (caret) caret.style.transform = 'rotate(0deg)';
+                }
+            }
 
             // 5. Carga diferida segura de datos dinámicos
             try {
@@ -849,6 +1213,14 @@
                     cargarModuloProformas();
                 } else if (sectionId === 'section-historial-ventas' && typeof cargarHistorialVentas === 'function') {
                     cargarHistorialVentas();
+                } else if (sectionId === 'section-promociones' && typeof cargarPromociones === 'function') {
+                    cargarPromociones();
+                } else if (sectionId === 'section-proveedores' && typeof cargarProveedores === 'function') {
+                    cargarProveedores();
+                } else if (sectionId === 'section-emitir-orden' && typeof inicializarEmitirOrden === 'function') {
+                    inicializarEmitirOrden();
+                } else if (sectionId === 'section-historial-compras' && typeof cargarHistorialCompras === 'function') {
+                    cargarHistorialCompras();
                 }
             } catch (err) {
                 console.error("Error al cargar datos del módulo:", err);
@@ -856,8 +1228,7 @@
         }
         
         document.addEventListener('DOMContentLoaded', () => {
-            const u = JSON.parse(localStorage.getItem('user')) || {};
-            const role = u.activeRole || u.role || 'Administrador';
+            const role = typeof getUsuarioRolActual === 'function' ? getUsuarioRolActual() : ((JSON.parse(localStorage.getItem('user')) || {}).role || 'Vendedor');
             
             if (typeof aplicarReglasVisibilidadNavegacion === 'function') {
                 aplicarReglasVisibilidadNavegacion(role);
@@ -913,8 +1284,457 @@
         </div>
     </div>
 
+    <!-- Modal Nueva / Editar Promoción por Temporada -->
+    <div class="modal-overlay" id="modal-promocion">
+        <div class="modal-container" style="max-width: 500px; border-radius: 12px;">
+            <div class="modal-header">
+                <h3 style="display: flex; align-items: center; gap: 8px;">
+                    <i class="ph-fill ph-tag" style="color: #6366f1;"></i> <span id="modal-promocion-title">Nueva Campaña de Promoción</span>
+                </h3>
+                <button class="modal-close" onclick="closeModal('modal-promocion')"><i class="ph ph-x"></i></button>
+            </div>
+            <form id="form-promocion" onsubmit="guardarPromocion(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px; padding: 15px 20px;">
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.85rem;">Nombre de la Campaña *</label>
+                        <input type="text" id="promo-nombre" placeholder="Ej: Oferta Navideña, Remate Fiestas Patrias" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label style="font-weight: 700; font-size: 0.85rem;">Tipo Descuento *</label>
+                            <select id="promo-tipo" class="form-select" style="width: 100%; padding: 8px; border-radius: 6px;">
+                                <option value="PORCENTAJE">Porcentaje (%)</option>
+                                <option value="MONTO_FIJO">Monto Fijo (S/)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: 700; font-size: 0.85rem;">Valor del Descuento *</label>
+                            <input type="number" step="0.01" min="0.1" id="promo-valor" placeholder="Ej: 10 para 10%" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.85rem;">Aplica a *</label>
+                        <select id="promo-aplica" class="form-select" style="width: 100%; padding: 8px; border-radius: 6px;" onchange="togglePromoFiltros()">
+                            <option value="TODOS">Todos los Productos de la Tienda</option>
+                            <option value="CATEGORIA">Categoría Específica</option>
+                            <option value="PRODUCTO">Producto Específico</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="group-promo-categoria" style="display: none;">
+                        <label style="font-weight: 700; font-size: 0.85rem;">Seleccionar Categoría *</label>
+                        <select id="promo-categoria" class="form-select" style="width: 100%; padding: 8px; border-radius: 6px;">
+                            <option value="">Cargando categorías...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="group-promo-producto" style="display: none;">
+                        <label style="font-weight: 700; font-size: 0.85rem;">Seleccionar Producto *</label>
+                        <select id="promo-producto" class="form-select" style="width: 100%; padding: 8px; border-radius: 6px;">
+                            <option value="">Cargando productos...</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label style="font-weight: 700; font-size: 0.85rem;">Fecha Inicio *</label>
+                            <input type="date" id="promo-fecha-inicio" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: 700; font-size: 0.85rem;">Fecha Fin *</label>
+                            <input type="date" id="promo-fecha-fin" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding: 12px 20px;">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modal-promocion')">Cancelar</button>
+                    <button type="submit" class="btn-save" style="position: static; background: #6366f1;">Guardar Promoción</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Autorización de Supervisor (Descuento Excepcional en Caja) -->
+    <div class="modal-overlay" id="modal-autorizacion-supervisor">
+        <div class="modal-container" style="max-width: 420px; border-radius: 12px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 14px 20px;">
+                <h3 style="color: white; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-lock-key" style="color: #f59e0b;"></i> Autorización de Supervisor
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-autorizacion-supervisor')"><i class="ph ph-x"></i></button>
+            </div>
+            <form id="form-autorizacion-supervisor" onsubmit="validarAutorizacionSupervisor(event)">
+                <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                    <p style="font-size: 0.85rem; color: #475569; margin: 0; background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 12px; border-radius: 4px;">
+                        ⚠️ Requiere credenciales de un <strong>Supervisor</strong> o <strong>Administrador</strong> para habilitar el descuento especial en esta venta.
+                    </p>
+                    <div class="form-group">
+                        <label style="font-size: 0.82rem; font-weight: 700;">Usuario de Supervisor / Admin *</label>
+                        <input type="text" id="sup-auth-user" placeholder="Ej: supervisor1" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size: 0.82rem; font-weight: 700;">Contraseña *</label>
+                        <input type="password" id="sup-auth-pass" placeholder="••••••••" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc;">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modal-autorizacion-supervisor')">Cancelar</button>
+                    <button type="submit" class="btn-save" style="position: static; background: #f59e0b; color: #1e293b; font-weight: 800;">
+                        <i class="ph-bold ph-key"></i> Autorizar Descuento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- MODAL: REGISTRAR / EDITAR PROVEEDOR (HU 22) -->
+    <!-- ======================================================= -->
+    <div class="modal-overlay" id="modal-proveedor">
+        <div class="modal-container" style="max-width: 580px; border-radius: 12px; overflow: hidden; padding: 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 16px 20px;">
+                <h3 id="modal-proveedor-title" style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-truck"></i> Registrar Nuevo Proveedor
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-proveedor')"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <div class="modal-body" style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+                <input type="hidden" id="edit-proveedor-id">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Número de RUC <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="prov-ruc" maxlength="11" oninput="validarInputRucEnTiempoReal(this)" placeholder="Ej: 20601234567" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; font-family: monospace;">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Celular (9 dígitos) <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="prov-telefono" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 9)" placeholder="Ej: 987654321" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Razón Social / Nombre Comercial <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="prov-razon-social" placeholder="Ej: Distribuidora Ferretera del Norte S.A.C." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Persona de Contacto</label>
+                        <input type="text" id="prov-contacto" placeholder="Ej: Carlos Mendoza" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Correo Electrónico</label>
+                        <input type="email" id="prov-correo" placeholder="Ej: ventas@ferreternorte.com" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Dirección Fiscal / Almacén</label>
+                    <input type="text" id="prov-direccion" placeholder="Ej: Av. Argentina 1450, Cercado de Lima" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-proveedor')">Cancelar</button>
+                <button type="button" id="btn-guardar-proveedor" onclick="guardarProveedor()" class="btn-save" style="position: static; background: #0284c7; padding: 9px 22px;">Guardar Proveedor</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- MODAL: CATÁLOGO DE PRODUCTOS DE PROVEEDOR (HU 23) -->
+    <!-- ======================================================= -->
+    <div class="modal-overlay" id="modal-catalogo-proveedor">
+        <div class="modal-container" style="max-width: 780px; border-radius: 12px; overflow: hidden; padding: 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 16px 20px;">
+                <div>
+                    <h3 style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <i class="ph-fill ph-package" style="color: #38bdf8;"></i> Catálogo de Productos del Proveedor
+                    </h3>
+                    <div id="catalogo-proveedor-info" style="margin-top: 4px;">
+                        <!-- Cargado dinámicamente -->
+                    </div>
+                </div>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-catalogo-proveedor')"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 18px; max-height: 75vh; overflow-y: auto;">
+                
+                <!-- Formulario de Asociación de Producto -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                        <i class="ph-bold ph-plus-circle" style="color: #0284c7;"></i> Vincular Nuevo Producto a este Proveedor
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 180px auto; gap: 12px; align-items: flex-end;">
+                        <div>
+                            <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Producto del Inventario *</label>
+                            <select id="catalogo-select-producto" onchange="onSelectProductoCatalogo()" class="form-select" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                <option value="">-- Selecciona un producto para vincular --</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Precio Compra Pactado (S/) *</label>
+                            <input type="number" id="catalogo-precio-compra" step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600;">
+                        </div>
+
+                        <div>
+                            <button onclick="asociarProductoACatalogo()" class="btn-save" style="position: static; background: #0284c7; padding: 9px 18px; font-size: 0.85rem; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+                                <i class="ph-bold ph-plus-circle"></i> Vincular Producto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Productos del Catálogo -->
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.84rem;">
+                        <thead style="background: #f1f5f9; color: #475569; font-weight: 700; text-align: left;">
+                            <tr>
+                                <th style="padding: 10px 14px;">CÓDIGO INTERNO</th>
+                                <th style="padding: 10px 14px;">PRODUCTO / CATEGORÍA</th>
+                                <th style="padding: 10px 14px; text-align: right;">PRECIO DE COMPRA</th>
+                                <th style="padding: 10px 14px; text-align: center;">ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogo-tbody">
+                            <!-- Renderizado dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-catalogo-proveedor')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- MODAL DE CONFIRMACIÓN ELEGANTE (REEMPLAZA CONFIRM NATIVO) -->
+    <!-- ======================================================= -->
+    <div class="modal-overlay" id="modal-confirmacion-custom" style="z-index: 100000; backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65);">
+        <div class="modal-container" style="max-width: 440px; border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1);">
+            <div style="padding: 24px 24px 18px 24px; text-align: center;">
+                <div id="modal-confirm-icon-wrapper" style="width: 60px; height: 60px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 16px auto;">
+                    <i class="ph-bold ph-trash" id="modal-confirm-icon"></i>
+                </div>
+                <h3 id="modal-confirm-titulo" style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">¿Estás seguro?</h3>
+                <p id="modal-confirm-mensaje" style="font-size: 0.88rem; color: #475569; margin: 0 0 14px 0; line-height: 1.45;"></p>
+                
+                <div id="modal-confirm-nota-wrapper" style="background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px; padding: 10px 14px; text-align: left; margin-bottom: 4px; display: none;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: #991b1b; margin-bottom: 2px;">Nota de Integridad:</div>
+                    <div id="modal-confirm-nota" style="font-size: 0.78rem; color: #7f1d1d; line-height: 1.35;"></div>
+                </div>
+            </div>
+            
+            <div style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" id="modal-confirm-btn-cancelar" class="btn-secondary" style="padding: 8px 18px; border-radius: 8px; font-weight: 600;">Cancelar</button>
+                <button type="button" id="modal-confirm-btn-aceptar" style="background: #dc2626; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);">
+                    <i class="ph-bold ph-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- MODAL EDITAR PRECIO DE COMPRA (REEMPLAZA EL PROMPT NATIVO) -->
+    <!-- ======================================================= -->
+    <div class="modal-overlay" id="modal-editar-precio" style="z-index: 100000; backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65);">
+        <div class="modal-container" style="max-width: 430px; border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 14px 20px;">
+                <h3 style="color: white; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-bold ph-tag"></i> Actualizar Precio de Compra
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-editar-precio')"><i class="ph ph-x"></i></button>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                <div id="modal-precio-producto-nombre" style="font-weight: 700; color: #1e293b; font-size: 0.95rem;"></div>
+                <div style="font-size: 0.8rem; color: #64748b; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px 12px; border-radius: 6px;">
+                    <i class="ph-bold ph-arrows-clockwise" style="color: #16a34a;"></i> Este cambio mantendrá sincronizado el catálogo del proveedor con el inventario de Almacén.
+                </div>
+                
+                <div class="form-group" style="margin-top: 4px;">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 4px; display: block;">Nuevo Precio de Compra Pactado (S/) *</label>
+                    <input type="number" id="modal-nuevo-precio-input" step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 700; color: #0284c7;">
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-editar-precio')">Cancelar</button>
+                <button type="button" id="modal-precio-btn-guardar" class="btn-save" style="position: static; background: #0284c7; padding: 8px 20px;">Guardar Precio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- MODAL: RECEPCIÓN DE MERCADERÍA AL ALMACÉN (HU 20)        -->
+    <!-- ======================================================= -->
+    <div class="modal-overlay" id="modal-recibir-compra" style="z-index: 100000; backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65);">
+        <div class="modal-container" style="max-width: 620px; border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #16a34a, #15803d); color: white; padding: 16px 22px;">
+                <h3 style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-bold ph-package"></i> Recibir Mercadería
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-recibir-compra')"><i class="ph ph-x"></i></button>
+            </div>
+            <div style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px;">
+                    <div>
+                        <div style="font-size: 0.78rem; color: #166534; font-weight: 600;">ORDEN DE COMPRA:</div>
+                        <div id="modal-recibir-oc-correlativo" style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: #15803d;">OC-XXXX</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.78rem; color: #166534; font-weight: 600;">PROVEEDOR:</div>
+                        <div id="modal-recibir-oc-proveedor" style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">---</div>
+                    </div>
+                </div>
+
+                <div style="font-size: 0.84rem; color: #475569; line-height: 1.45;">
+                    Verifica los productos recibidos. Al confirmar, el sistema <strong>sumará automáticamente el stock al inventario de tu sede</strong> y registrará la entrada oficial en el Kardex.
+                </div>
+
+                <!-- Tabla de productos a ingresar -->
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 220px; overflow-y: auto;">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8fafc; color: #475569; font-size: 0.8rem; text-align: left;">
+                                <th style="padding: 8px 12px;">CÓDIGO</th>
+                                <th style="padding: 8px 12px;">PRODUCTO</th>
+                                <th style="padding: 8px 12px; text-align: center;">CANTIDAD</th>
+                                <th style="padding: 8px 12px; text-align: right;">PRECIO</th>
+                                <th style="padding: 8px 12px; text-align: right;">SUBTOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-recibir-oc-items-tbody">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-recibir-compra')">Cancelar</button>
+                <button type="button" id="btn-confirmar-recepcion-submit" onclick="confirmarRecepcionCompra()"
+                        style="background: #16a34a; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);">
+                    <i class="ph-bold ph-check"></i> Confirmar Recepción
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- MODAL: DOCUMENTO FORMAL DE ORDEN DE COMPRA / PDF (HU 19 & 21) -->
+    <!-- ======================================================= -->
+    <div class="modal-overlay" id="modal-documento-orden-compra" style="z-index: 100000; backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65);">
+        <div class="modal-container" style="max-width: 760px; border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 16px 22px;">
+                <h3 style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-bold ph-file-text"></i> Orden de Compra
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-documento-orden-compra')"><i class="ph ph-x"></i></button>
+            </div>
+
+            <!-- Área Imprimible / Vista Documental -->
+            <div id="doc-oc-printable-area" style="padding: 26px; background: white; color: #1e293b; max-height: 520px; overflow-y: auto;">
+                
+                <!-- Encabezado Empresarial -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 16px; margin-bottom: 18px;">
+                    <div>
+                        <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">FERRETERÍA JESMI</div>
+                        <div style="font-size: 0.82rem; color: #64748b;">RUC: 20601234567 • Materiales y Herramientas para la Construcción</div>
+                        <div style="font-size: 0.82rem; color: #64748b;">Sede de Recepción: <strong id="doc-oc-sede-nombre" style="color: #0f172a;">---</strong></div>
+                        <div style="font-size: 0.8rem; color: #94a3b8;" id="doc-oc-sede-direccion">---</div>
+                    </div>
+                    <div style="text-align: right; border: 2px solid #0284c7; padding: 10px 18px; border-radius: 10px; background: #f0f9ff;">
+                        <div style="font-size: 0.78rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">ORDEN DE COMPRA</div>
+                        <div id="doc-oc-correlativo" style="font-size: 1.25rem; font-weight: 900; font-family: monospace; color: #0284c7;">OC-XXXX</div>
+                        <div id="doc-oc-estado" style="font-size: 0.75rem; font-weight: 800; color: #b45309; text-transform: uppercase; margin-top: 2px;">PENDIENTE</div>
+                    </div>
+                </div>
+
+                <!-- Bloques Proveedor y Fechas -->
+                <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;">
+                    <div>
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">PROVEEDOR SELECCIONADO:</div>
+                        <div id="doc-oc-prov-nombre" style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-top: 2px;">---</div>
+                        <div style="font-size: 0.82rem; color: #475569;">RUC: <strong id="doc-oc-prov-ruc" style="font-family: monospace;">---</strong></div>
+                        <div style="font-size: 0.82rem; color: #475569;">Contacto: <span id="doc-oc-prov-contacto">---</span> • Celular: <span id="doc-oc-prov-telefono" style="color: #059669; font-weight: 700;">---</span></div>
+                        <div style="font-size: 0.8rem; color: #64748b;" id="doc-oc-prov-correo">---</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">DETALLES DE EMISIÓN:</div>
+                        <div style="font-size: 0.82rem; color: #475569; margin-top: 4px;">Fecha Emisión: <strong id="doc-oc-fecha-emision">---</strong></div>
+                        <div style="font-size: 0.82rem; color: #475569;">Fecha Entrega: <strong id="doc-oc-fecha-esperada" style="color: #0284c7;">---</strong></div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;" id="doc-oc-observaciones"></div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Productos Solicitados -->
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                    <thead>
+                        <tr style="background: #f1f5f9; color: #334155; font-size: 0.8rem; border-bottom: 2px solid #cbd5e1;">
+                            <th style="padding: 8px 10px; text-align: center; width: 40px;">#</th>
+                            <th style="padding: 8px 10px; text-align: left;">CÓDIGO</th>
+                            <th style="padding: 8px 10px; text-align: left;">DESCRIPCIÓN DEL PRODUCTO</th>
+                            <th style="padding: 8px 10px; text-align: center;">CANT.</th>
+                            <th style="padding: 8px 10px; text-align: right;">P. UNITARIO</th>
+                            <th style="padding: 8px 10px; text-align: right;">SUBTOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="doc-oc-items-tbody">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+
+                <!-- Resumen de Totales Documental -->
+                <div style="display: flex; justify-content: flex-end;">
+                    <div style="width: 260px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">
+                            <span>Subtotal:</span>
+                            <span id="doc-oc-subtotal" style="font-weight: 600;">S/. 0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #475569; margin-bottom: 6px;">
+                            <span>IGV (18%):</span>
+                            <span id="doc-oc-igv" style="font-weight: 600;">S/. 0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 1.05rem; font-weight: 800; color: #0f172a; border-top: 1px solid #cbd5e1; padding-top: 6px;">
+                            <span>TOTAL:</span>
+                            <span id="doc-oc-total" style="color: #0284c7;">S/. 0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-documento-orden-compra')">Cerrar</button>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="enviarOrdenPorWhatsApp(ordenSeleccionadaAccion?.id_orden_compra)"
+                            style="background: #16a34a; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="ph-bold ph-whatsapp-logo"></i> Enviar WhatsApp
+                    </button>
+                    <button type="button" onclick="imprimirOrdenCompraActual()"
+                            style="background: #0284c7; color: white; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="ph-bold ph-printer"></i> Imprimir PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="historial_ventas.js"></script>
     <script src="proformas.js?v=1"></script>
+    <script src="promociones.js?v=1"></script>
+    <script src="proveedores.js?v=4"></script>
+    <script src="compras.js?v=1"></script>
 
 </body>
 </html>

@@ -118,16 +118,66 @@ document.addEventListener('DOMContentLoaded', () => {
                     ingresarConRol(roles[0] || 'Vendedor');
                 }
 
+function showNotification(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.position = 'fixed';
+        container.style.bottom = '24px';
+        container.style.right = '24px';
+        container.style.zIndex = '999999';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '10px';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    const isSuccess = type === 'success';
+    toast.style.background = isSuccess ? '#10b981' : '#ef4444';
+    toast.style.color = '#ffffff';
+    toast.style.padding = '14px 22px';
+    toast.style.borderRadius = '10px';
+    toast.style.boxShadow = '0 10px 25px rgba(0,0,0,0.18)';
+    toast.style.fontFamily = "'Inter', sans-serif";
+    toast.style.fontWeight = '600';
+    toast.style.fontSize = '0.92rem';
+    toast.style.display = 'flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '10px';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px)';
+    toast.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    
+    const iconClass = isSuccess ? 'ph-check-circle' : 'ph-warning-circle';
+    toast.innerHTML = `<i class="ph-fill ${iconClass}" style="font-size: 1.3rem;"></i><span>${message}</span>`;
+
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    });
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3200);
+}
+
             } else {
-                alert(data.error || 'Credenciales incorrectas');
+                showNotification(data.error || 'Credenciales incorrectas', 'error');
                 btn.textContent = originalText;
                 btn.disabled = false;
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error de conexión con el servidor');
+            showNotification('Error de conexión con el servidor', 'error');
             btn.textContent = originalText;
             btn.disabled = false;
         }
     });
 });
+
