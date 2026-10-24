@@ -89,21 +89,6 @@
                     <span>Proveedores</span>
                 </a>
                 
-                <a href="#" class="nav-item" id="nav-ganancias">
-                    <i class="ph-fill ph-money"></i>
-                    <span>Ganancias</span>
-                    <i class="ph ph-caret-right ml-auto"></i>
-                </a>
-                
-                <a href="#" class="nav-item" id="nav-boletas">
-                    <i class="ph-fill ph-receipt"></i>
-                    <span>Boletas</span>
-                </a>
-                
-                <a href="#" class="nav-item" id="nav-facturas">
-                    <i class="ph-fill ph-file-text"></i>
-                    <span>Facturas</span>
-                </a>
             </nav>
         </aside>
 
@@ -1134,7 +1119,7 @@
     </div>
 
     <script src="config.js"></script>
-    <script src="dashboard.js?v=20261024_1220"></script>
+    <script src="dashboard.js?v=20261024_1535"></script>
     <script src="almacen.js?v=4"></script>
     <script src="caja.js?v=5"></script>
     <script>
@@ -1143,7 +1128,7 @@
             const role = u.activeRole || u.role || 'Vendedor';
 
             // Redirección segura según permisos de rol
-            if (role === 'Vendedor' && (sectionId === 'section-usuarios' || sectionId === 'section-historial-ventas' || sectionId === 'section-emitir-orden' || sectionId === 'section-historial-compras' || sectionId === 'section-proveedores' || sectionId === 'section-ganancias')) {
+            if (role === 'Vendedor' && (sectionId === 'section-usuarios' || sectionId === 'section-historial-ventas' || sectionId === 'section-emitir-orden' || sectionId === 'section-historial-compras' || sectionId === 'section-proveedores')) {
                 sectionId = 'section-ventas';
             }
             if (role !== 'Vendedor' && sectionId === 'section-proformas') {

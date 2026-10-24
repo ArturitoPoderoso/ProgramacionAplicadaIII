@@ -564,9 +564,6 @@ function aplicarReglasVisibilidadNavegacion(role) {
     const elClientes = document.getElementById('nav-clientes');
     const elCompras = document.getElementById('nav-compras-group') || document.getElementById('nav-compras');
     const elProveedores = document.getElementById('nav-proveedores');
-    const elGanancias = document.getElementById('nav-ganancias');
-    const elBoletas = document.getElementById('nav-boletas');
-    const elFacturas = document.getElementById('nav-facturas');
     const btnNuevoProd = document.getElementById('btn-nuevo-producto');
 
     if (isVendedor) {
@@ -576,14 +573,11 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elProductos) elProductos.style.display = 'flex';
         if (elProformas) elProformas.style.display = 'flex';
         if (elClientes) elClientes.style.display = 'flex';
-        if (elBoletas) elBoletas.style.display = 'flex';
-        if (elFacturas) elFacturas.style.display = 'flex';
 
         if (elPromociones) elPromociones.style.display = 'none';
         if (elHistorialVentas) elHistorialVentas.style.display = 'none';
         if (elCompras) elCompras.style.display = 'none';
         if (elProveedores) elProveedores.style.display = 'none';
-        if (elGanancias) elGanancias.style.display = 'none';
         if (btnNuevoProd) btnNuevoProd.style.display = 'none';
 
     } else if (isSupervisor) {
@@ -597,10 +591,7 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elCompras) elCompras.style.display = 'block';
         if (elProveedores) elProveedores.style.display = 'flex';
         if (elClientes) elClientes.style.display = 'flex';
-        if (elBoletas) elBoletas.style.display = 'flex';
-        if (elFacturas) elFacturas.style.display = 'flex';
 
-        if (elGanancias) elGanancias.style.display = 'none';
         if (btnNuevoProd) btnNuevoProd.style.display = 'inline-flex';
 
     } else {
@@ -615,9 +606,6 @@ function aplicarReglasVisibilidadNavegacion(role) {
         if (elCompras) elCompras.style.display = 'block';
         if (elProveedores) elProveedores.style.display = 'flex';
         if (elClientes) elClientes.style.display = 'flex';
-        if (elGanancias) elGanancias.style.display = 'flex';
-        if (elBoletas) elBoletas.style.display = 'flex';
-        if (elFacturas) elFacturas.style.display = 'flex';
 
         if (btnNuevoProd) btnNuevoProd.style.display = 'inline-flex';
     }
