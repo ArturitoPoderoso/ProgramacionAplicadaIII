@@ -1,12 +1,5 @@
-/**
- * ==============================================================================
- * MÓDULO DE COMPRAS (HU 19, HU 20 & HU 21) - SISTEMA JESMI
- * ==============================================================================
- * - HU 19: Emisión de Orden de Compra por Proveedor con precios pactados y PDF/WhatsApp.
- * - HU 20: Recepción de Mercadería con Ingreso Automático a Almacén e incremento de stock.
- * - HU 21: Historial de Compras, control por sede, estados y anulación con reversión de stock.
- * ==============================================================================
- */
+// Modulo de Compras
+// Emision de ordenes a proveedores, recepcion de mercaderia e historial
 
 const ComprasModule = {
     apiUrl: window.API_BASE_URL || 'http://localhost:8000/api',
@@ -38,10 +31,7 @@ const ComprasModule = {
         return Math.round((num + Number.EPSILON) * 100) / 100;
     },
 
-    // ==========================================================================
-    // 1. EMISIÓN DE ÓRDENES DE COMPRA (HU 19)
-    // ==========================================================================
-
+    // Emision de nuevas ordenes de compra
     getHoyLocalStr() {
         const hoy = new Date();
         const y = hoy.getFullYear();
@@ -452,10 +442,7 @@ const ComprasModule = {
         }
     },
 
-    // ==========================================================================
-    // 2. HISTORIAL DE COMPRAS & RECEPCIÓN (HU 20 & HU 21)
-    // ==========================================================================
-
+    // Historial de compras y recepcion de mercaderia
     async cargarHistorialCompras() {
         const tbody = document.getElementById('compras-historial-tbody');
         if (!tbody) return;
@@ -700,10 +687,7 @@ const ComprasModule = {
         this.renderizarTablaHistorialCompras(this.ordenesFiltradasCache);
     },
 
-    // ==========================================================================
-    // 3. RECEPCIÓN DE MERCADERÍA AL ALMACÉN (HU 20)
-    // ==========================================================================
-
+    // Recepcion de mercaderia e ingreso al almacen
     async abrirModalRecibirCompra(idOrden) {
         const orden = this.listaComprasCache.find(o => o.id_orden_compra === idOrden);
         if (!orden) return;
@@ -779,10 +763,7 @@ const ComprasModule = {
         }
     },
 
-    // ==========================================================================
-    // 4. ANULACIÓN SEGURA DE ÓRDENES (HU 21)
-    // ==========================================================================
-
+    // Anulacion de ordenes de compra
     abrirModalAnularCompra(idOrden, correlativo) {
         const orden = this.listaComprasCache.find(o => o.id_orden_compra === idOrden);
         if (!orden) return;
@@ -859,10 +840,7 @@ const ComprasModule = {
         }
     },
 
-    // ==========================================================================
-    // 5. DETALLE, IMPRESIÓN PDF Y WHATSAPP (HU 19 & 21)
-    // ==========================================================================
-
+    // Detalle de la orden, impresion en PDF y envio por WhatsApp
     async abrirModalDetalleCompra(idOrden) {
         try {
             const u = JSON.parse(localStorage.getItem('user')) || {};
@@ -986,9 +964,7 @@ const ComprasModule = {
     }
 };
 
-// ==============================================================================
-// REGISTRO GLOBAL Y ALIAS PARA COMPATIBILIDAD CON ONCLICK EN EL HTML
-// ==============================================================================
+// Funciones globales expuestas para los eventos de los botones y modales
 window.ComprasModule = ComprasModule;
 window.inicializarEmitirOrden = () => ComprasModule.inicializarEmitirOrden();
 window.cargarSiguienteCorrelativoOC = () => ComprasModule.cargarSiguienteCorrelativoOC();

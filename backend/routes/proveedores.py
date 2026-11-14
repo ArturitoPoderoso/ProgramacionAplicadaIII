@@ -7,7 +7,7 @@ import models
 proveedores_bp = Blueprint("proveedores", __name__)
 
 def check_supervisor_or_admin(db, user_role, user_id=None):
-    """Verifica si el rol o usuario tiene permisos de Supervisor o Administrador"""
+    # Revisa si el usuario tiene rol de Administrador o Supervisor
     if user_role and user_role.lower() in ["administrador", "admin", "supervisor"]:
         return True
     if user_id:
@@ -20,7 +20,7 @@ def check_supervisor_or_admin(db, user_role, user_id=None):
 
 @proveedores_bp.route("/api/proveedores", methods=["GET"])
 def get_proveedores():
-    """Listar todos los proveedores activos con resumen de catálogo y órdenes (filtrable por sede)"""
+    # Lista los proveedores activos con sus productos y ordenes registradas
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Vendedores no tienen acceso a proveedores"}), 403
@@ -34,7 +34,7 @@ def get_proveedores():
 
         proveedores = query.order_by(models.Proveedor.razon_social.asc()).all()
 
-        # Optimización: Agrupación en consultas directas para evitar N+1 queries hacia Supabase
+        # Agrupamos en consultas directas para contar productos y ordenes por proveedor
         prods_map = dict(
             db.query(models.ProveedorProducto.id_proveedor, func.count(models.ProveedorProducto.id_proveedor_producto))
             .filter(models.ProveedorProducto.estado_registro == 1)
@@ -86,7 +86,7 @@ def get_proveedores():
 
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>", methods=["GET"])
 def get_proveedor(id_proveedor):
-    """Obtener un proveedor específico por ID"""
+    # Obtiene los datos de un proveedor por su ID
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -133,7 +133,7 @@ def get_proveedor(id_proveedor):
 
 @proveedores_bp.route("/api/proveedores", methods=["POST"])
 def create_proveedor():
-    """Registrar un nuevo proveedor con validación de RUC duplicado por sede y celular de 9 dígitos"""
+    # Registra un nuevo proveedor validando formato de RUC y celular
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Solo Administrador o Supervisor pueden registrar proveedores"}), 403
@@ -179,7 +179,7 @@ def create_proveedor():
 
         id_sede_final = int(id_sede) if id_sede and str(id_sede).isdigit() else 1
 
-        # Criterio de Aceptación: Validar RUC registrado para la misma sede
+        # Validamos que no exista otro proveedor con el mismo RUC en la misma sede
         existente = db.query(models.Proveedor).filter(
             models.Proveedor.ruc == ruc,
             models.Proveedor.id_sede == id_sede_final,
@@ -237,7 +237,7 @@ def create_proveedor():
 
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>", methods=["PUT"])
 def update_proveedor(id_proveedor):
-    """Actualizar datos de un proveedor"""
+    # Actualiza los datos del proveedor
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -309,7 +309,7 @@ def update_proveedor(id_proveedor):
 
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>", methods=["DELETE"])
 def delete_proveedor(id_proveedor):
-    """Eliminar un proveedor lógicamente validando si tiene compras asociadas"""
+    # Desactiva un proveedor si no tiene ordenes de compra asociadas
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -346,7 +346,7 @@ def delete_proveedor(id_proveedor):
 
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>/catalogo", methods=["GET"])
 def get_catalogo_proveedor(id_proveedor):
-    """Listar productos que provee este proveedor con su precio pactado"""
+    # Lista los productos asociados a este proveedor con su precio pactado
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -430,7 +430,7 @@ def get_catalogo_proveedor(id_proveedor):
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>/catalogo", methods=["POST"])
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>/productos", methods=["POST"])
 def asociar_producto_catalogo(id_proveedor):
-    """Asociar un producto a un proveedor con su precio de compra o actualizarlo"""
+    # Asocia un producto al proveedor o actualiza su precio de compra pactado
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -502,7 +502,7 @@ def asociar_producto_catalogo(id_proveedor):
 
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>/catalogo/<int:id_producto>", methods=["DELETE"])
 def desasociar_producto_catalogo(id_proveedor, id_producto):
-    """Remover un producto del catálogo de un proveedor"""
+    # Quita un producto del catalogo de este proveedor
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403

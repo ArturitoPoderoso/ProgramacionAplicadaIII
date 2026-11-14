@@ -1,11 +1,5 @@
-/**
- * ==============================================================================
- * HISTORIAL DE VENTAS (HU 13) - SISTEMA JESMI
- * ==============================================================================
- * Módulo encapsulado para la auditoría y visualización de ventas por sede,
- * cálculo de KPIs, filtrado por fechas y comprobantes con paginación en memoria.
- * ==============================================================================
- */
+// Modulo de Historial de Ventas
+// Consulta de ventas por fechas y sedes, calculo de KPIs y detalle de comprobantes
 
 const HistorialVentasModule = {
     apiUrl: window.API_BASE_URL || 'http://localhost:8000/api',
@@ -312,9 +306,7 @@ const HistorialVentasModule = {
     }
 };
 
-// ==============================================================================
-// REGISTRO GLOBAL Y ALIAS PARA COMPATIBILIDAD CON ONCLICK EN EL HTML
-// ==============================================================================
+// Funciones globales para los filtros y paginacion en el HTML
 window.HistorialVentasModule = HistorialVentasModule;
 window.cargarSedesFiltroHistorial = () => HistorialVentasModule.cargarSedesFiltroHistorial();
 window.cargarHistorialVentas = () => HistorialVentasModule.cargarHistorialVentas();

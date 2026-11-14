@@ -1,11 +1,5 @@
-/**
- * ==============================================================================
- * GESTIÓN DE PROVEEDORES (HU 22 & HU 23) - SISTEMA JESMI
- * ==============================================================================
- * Módulo encapsulado para el registro de proveedores por sede con validación de RUC
- * (11 dígitos, prefijo 10/20), gestión de catálogo pactado y asociación de productos.
- * ==============================================================================
- */
+// Modulo de Proveedores y Precios Pactados
+// Registro de proveedores, validacion de RUC y catalogo de productos pactados
 
 const ProveedoresModule = {
     apiUrl: window.API_BASE_URL || 'http://localhost:8000/api',
@@ -453,10 +447,7 @@ const ProveedoresModule = {
         });
     },
 
-    // ==========================================================================
-    // CATÁLOGO DE PRODUCTOS DEL PROVEEDOR (HU 23)
-    // ==========================================================================
-
+    // Catalogo de productos asociados al proveedor
     async abrirModalCatalogo(idProveedor) {
         this.proveedorActualCatalogo = idProveedor;
         const modal = document.getElementById('modal-catalogo-proveedor');
@@ -765,9 +756,7 @@ const ProveedoresModule = {
     }
 };
 
-// ==============================================================================
-// REGISTRO GLOBAL Y ALIAS PARA COMPATIBILIDAD CON ONCLICK EN EL HTML
-// ==============================================================================
+// Funciones globales expuestas para los onclick del HTML
 window.ProveedoresModule = ProveedoresModule;
 window.cambiarSedeProveedores = () => ProveedoresModule.cambiarSedeProveedores();
 window.cargarProveedores = () => ProveedoresModule.cargarProveedores();

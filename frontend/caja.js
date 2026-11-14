@@ -1,11 +1,5 @@
-/**
- * ==============================================================================
- * PUNTO DE VENTA (CAJA) - SISTEMA JESMI
- * ==============================================================================
- * Módulo encapsulado para la gestión del POS, carrito de compras, cálculo
- * de descuentos por promociones y supervisor, emisión y renderizado de boletas.
- * ==============================================================================
- */
+// Modulo de Caja y Punto de Venta (POS)
+// Administra el catalogo de productos, el carrito de compras, descuentos y emision de tickets
 
 const CajaModule = {
     apiUrl: window.API_BASE_URL || 'http://localhost:8000/api',
@@ -221,7 +215,7 @@ const CajaModule = {
             container.appendChild(div);
         });
 
-        // 1. Descuentos por Temporada Activa (Automáticos)
+        // Aplica promociones activas si coinciden con productos o categorias
         let descuentoTemporada = 0;
         let nombreCampañaActiva = '';
 
@@ -258,7 +252,7 @@ const CajaModule = {
             bannerPromo.style.display = 'none';
         }
 
-        // 2. Descuento Autorizado por Supervisor
+        // Aplica el descuento manual si el supervisor ya autorizo
         let descuentoSupervisor = 0;
         if (this.supervisorAutorizadoInfo) {
             let rawVal = inputDesc ? String(inputDesc.value || '0').replace(',', '.') : '0';
@@ -274,7 +268,7 @@ const CajaModule = {
 
         const descuentoGlobal = descuentoTemporada + descuentoSupervisor;
 
-        // REGLA DE ORO DE DESCUENTOS: Verificar que ningún producto se venda por debajo de su precio_compra
+        // Validacion de precio: ningun producto puede salir por debajo de su costo de compra
         let tieneError = false;
         let mensajeError = '';
 
@@ -495,7 +489,7 @@ const CajaModule = {
 
                 await this.cargarProductosCaja();
 
-                // Notificar a toda la SPA que el stock y ventas se actualizaron
+                // Avisamos a las demas pantallas que cambio el stock
                 if (window.EventBus) {
                     window.EventBus.emit('stock:updated', { source: 'caja' });
                     window.EventBus.emit('venta:registrada', { correlativo: result.correlativo });
@@ -717,9 +711,7 @@ const CajaModule = {
     }
 };
 
-// ==============================================================================
-// REGISTRO GLOBAL Y ALIAS PARA COMPATIBILIDAD CON ONCLICK EN EL HTML
-// ==============================================================================
+// Exportamos las funciones al objeto window para que funcionen con los onclick del HTML
 window.CajaModule = CajaModule;
 window.cargarProductosCaja = () => CajaModule.cargarProductosCaja();
 window.cargarProductosPos = () => CajaModule.cargarProductosCaja();

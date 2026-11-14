@@ -5,6 +5,7 @@ import models
 
 promociones_bp = Blueprint("promociones", __name__)
 
+# Listado general de promociones registradas
 @promociones_bp.route("/api/promociones", methods=["GET"])
 def get_promociones():
     db = get_db()
@@ -40,6 +41,7 @@ def get_promociones():
         return jsonify({"error": str(e)}), 400
 
 
+# Retorna solo las promociones vigentes hoy para aplicar en la caja
 @promociones_bp.route("/api/promociones/activas", methods=["GET"])
 def get_promociones_activas():
     db = get_db()
@@ -76,6 +78,7 @@ def get_promociones_activas():
         return jsonify({"error": str(e)}), 400
 
 
+# Crea una nueva promocion o descuento por producto, categoria o global
 @promociones_bp.route("/api/promociones", methods=["POST"])
 def create_promocion():
     db = get_db()
@@ -118,6 +121,7 @@ def create_promocion():
         return jsonify({"error": str(e)}), 400
 
 
+# Desactiva una promocion
 @promociones_bp.route("/api/promociones/<int:id_promocion>", methods=["DELETE"])
 def delete_promocion(id_promocion):
     db = get_db()
@@ -134,6 +138,7 @@ def delete_promocion(id_promocion):
         return jsonify({"error": str(e)}), 400
 
 
+# Valida las credenciales de un supervisor para autorizar un descuento especial en caja
 @promociones_bp.route("/api/supervisor/autorizar", methods=["POST"])
 def autorizar_supervisor():
     db = get_db()

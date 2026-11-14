@@ -19,6 +19,7 @@ def format_peru_datetime(dt):
     except Exception:
         return dt.strftime("%d/%m/%Y %H:%M")
 
+# Registra una nueva venta, valida stock y descuenta del inventario de la sede
 @ventas_bp.route("/api/ventas", methods=["POST"])
 def create_venta():
     data = request.json or {}
@@ -37,10 +38,10 @@ def create_venta():
             
         id_sede = usuario.id_sede or 1
         
-        # Generar correlativo simple V-YYYYMMDDHHMMSS-RANDOM
+        # Generamos el correlativo del ticket de venta
         correlativo = f"V-{datetime.now().strftime('%Y%m%d%H%M%S')}-{str(uuid.uuid4())[:4].upper()}"
         
-        # Calcular total bruto e individual
+        # Calculamos subtotales y validamos cada producto
         subtotal_acumulado = 0.0
         detalles_procesados = []
 
@@ -65,7 +66,7 @@ def create_venta():
             descuento_unitario = float(det.get("descuento_unitario", 0.0))
             precio_efectivo_unitario = precio_unitario - descuento_unitario
             
-            # REGLA DE ORO COMERCIAL: precio_efectivo >= precio_compra
+            # Validamos que el precio con descuento no quede por debajo del costo de compra
             precio_compra = float(inventario.precio_compra) if (inventario.precio_compra is not None) else 0.0
             if precio_efectivo_unitario < precio_compra:
                 raise Exception(f"No se puede aplicar descuento a '{producto.nombre}': El precio final de venta (S/ {precio_efectivo_unitario:.2f}) es inferior al costo de compra (S/ {precio_compra:.2f}).")
@@ -95,7 +96,7 @@ def create_venta():
         db.add(nueva_venta)
         db.flush() 
         
-        # Procesar detalles y descontar stock DE LA SEDE DEL USUARIO
+        # Guardamos los items de la venta y descontamos el stock en la sede del usuario
         for item in detalles_procesados:
             producto = item["producto"]
             inventario = item["inventario"]
@@ -154,6 +155,7 @@ def create_venta():
         return jsonify({"error": str(e)}), 400
 
 
+# Consulta el listado de ventas para administradores y supervisores con filtros y totales
 @ventas_bp.route("/api/ventas", methods=["GET"])
 def get_ventas():
     user_role_hdr = request.headers.get("X-Role", "")
@@ -270,7 +272,7 @@ def get_ventas():
             "top_vendedor": top_vendedor
         }
 
-        # Soporte para paginación opcional en servidor
+        # Paginacion opcional si el frontend la solicita
         page = request.args.get("page", type=int)
         limit = request.args.get("limit", default=15, type=int)
 
@@ -294,6 +296,7 @@ def get_ventas():
         return jsonify({"error": str(e)}), 400
 
 
+# Obtiene el detalle de una venta especifica para reimprimir o ver la boleta
 @ventas_bp.route("/api/ventas/<int:id_venta>", methods=["GET"])
 def get_detalle_venta(id_venta):
     db = get_db()

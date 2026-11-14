@@ -5,6 +5,7 @@ import models
 
 proformas_bp = Blueprint("proformas", __name__)
 
+# Guarda una nueva cotizacion o proforma emitida por un vendedor
 @proformas_bp.route("/api/proformas", methods=["POST"])
 def registrar_proforma():
     data = request.json or {}
@@ -74,6 +75,7 @@ def registrar_proforma():
         return jsonify({"error": str(e)}), 400
 
 
+# Lista el historial de proformas emitidas con filtros por sede o cliente
 @proformas_bp.route("/api/proformas", methods=["GET"])
 def get_proformas():
     db = get_db()
@@ -132,6 +134,7 @@ def get_proformas():
         return jsonify({"error": str(e)}), 400
 
 
+# Obtiene el detalle de una proforma para visualizacion o impresion
 @proformas_bp.route("/api/proformas/<int:id_proforma>", methods=["GET"])
 def get_detalle_proforma(id_proforma):
     db = get_db()

@@ -55,7 +55,7 @@ class User(Base):
             return self.perfiles[0].nombre
         return "Vendedor"
 
-# --- Módulo de Almacén ---
+# Modelos de categorias, subcategorias, productos e inventario por sede
 
 class Categoria(Base):
     __tablename__ = "categorias"
@@ -125,7 +125,7 @@ class MovimientoAlmacen(Base):
     usuario = relationship("User") 
     sede = relationship("Sede")
 
-# --- Módulo de Ventas ---
+# Modelos de ventas y detalle de comprobantes
 
 class Venta(Base):
     __tablename__ = "ventas"
@@ -156,7 +156,7 @@ class DetalleVenta(Base):
     venta = relationship("Venta", back_populates="detalles")
     producto = relationship("Producto", back_populates="detalles_venta")
 
-# --- Módulo de Proformas / Cotizaciones ---
+# Modelos de cotizaciones y proformas
 
 class Proforma(Base):
     __tablename__ = "proformas"
@@ -188,7 +188,7 @@ class DetalleProforma(Base):
     producto = relationship("Producto")
 
 
-# --- Módulo de Promociones / Descuentos por Temporada ---
+# Modelos de promociones y descuentos temporales
 
 class Promocion(Base):
     __tablename__ = "promociones"
@@ -212,7 +212,7 @@ class Promocion(Base):
     creador = relationship("User")
 
 
-# --- Módulo de Proveedores y Compras (Escalable para HU 19, 20, 21, 22, 23, 24) ---
+# Modelos de proveedores, ordenes de compra y evaluaciones
 
 class Proveedor(Base):
     __tablename__ = "proveedores"

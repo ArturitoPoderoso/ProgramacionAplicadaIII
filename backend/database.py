@@ -42,13 +42,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def get_db():
-    """Obtiene una sesión de base de datos vinculada al ciclo de vida de la petición Flask"""
+    # Retorna la sesion de base de datos para la peticion actual
     if 'db' not in g:
         g.db = SessionLocal()
     return g.db
 
 def teardown_db(exception=None):
-    """Cierra la sesión de base de datos al finalizar la petición"""
+    # Cierra la sesion al terminar la peticion HTTP
     db = g.pop('db', None)
     if db is not None:
         db.close()

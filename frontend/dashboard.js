@@ -1,11 +1,6 @@
-/**
- * dashboard.js
- * Orquestador principal de UI, EventBus reactivo, Toasts y Modales - Sistema Jesmi
- */
+// Manejo general del dashboard, navegacion, alertas y modales
 
-// ==============================================================================
-// 1. EVENT BUS GLOBAL (Comunicación reactiva entre vistas SPA)
-// ==============================================================================
+// Canal de eventos para comunicar cambios entre vistas sin recargar
 window.EventBus = {
     events: {},
     on(event, callback) {
@@ -21,9 +16,7 @@ window.EventBus = {
     }
 };
 
-// ==============================================================================
-// 2. SISTEMA UNIFICADO DE TOAST NOTIFICATIONS (UI/UX)
-// ==============================================================================
+// Mensajes emergentes en pantalla
 window.Toast = {
     show(message, type = 'success', duration = 3000) {
         let container = document.getElementById('toast-container');
@@ -158,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Toggle para Submenú Compras (HU 19, 20 & 21)
+    // Desplegable de compras en el menu lateral
     const btnCompras = document.getElementById('btn-compras');
     const subgroupCompras = document.getElementById('subgroup-compras');
     if (btnCompras && subgroupCompras) {

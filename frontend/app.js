@@ -1,10 +1,11 @@
+// Logica de inicio de sesion y seleccion de rol del usuario
 document.addEventListener('DOMContentLoaded', () => {
     const togglePasswordBtn = document.getElementById('toggle-password');
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eye-icon');
     const loginForm = document.getElementById('login-form');
 
-    // Toggle password visibility
+    // Ocultar o mostrar contraseña
     togglePasswordBtn.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
@@ -36,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle form submission
+    // Envio del formulario de login
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         

@@ -18,7 +18,7 @@ from routes import (
     compras_bp
 )
 
-# 1. Verificación y sincronización de base de datos
+# Creamos las tablas o columnas faltantes si no existen
 try:
     models.Base.metadata.create_all(bind=engine)
     with engine.connect() as conn:
@@ -28,14 +28,13 @@ try:
 except Exception as e:
     print(f"Error conectando o sincronizando BD: {e}")
 
-# 2. Inicialización de la aplicación Flask
+# Configuracion de Flask y CORS
 app = Flask(__name__)
 CORS(app)
 
-# 3. Middleware de compresión GZIP de alto rendimiento (Escalamiento de tráfico y ancho de banda)
+# Comprime respuestas grandes con gzip para que cargue mas rapido
 @app.after_request
 def compress_response(response):
-    """Comprime automáticamente respuestas > 512 bytes si el cliente soporta GZIP"""
     try:
         accept_encoding = request.headers.get("Accept-Encoding", "").lower()
         if (
@@ -56,10 +55,10 @@ def compress_response(response):
         pass
     return response
 
-# 4. Gestión del ciclo de vida de la conexión a la base de datos
+# Cierra la conexion a la BD al terminar cada request
 app.teardown_appcontext(teardown_db)
 
-# 5. Manejadores globales de errores centralizados
+# Manejo de errores 500 y 404 en formato JSON
 @app.errorhandler(500)
 def internal_server_error(e):
     return jsonify({"error": "Error interno del servidor", "status": 500}), 500
@@ -70,7 +69,7 @@ def not_found_error(e):
         return jsonify({"error": "Endpoint de API no encontrado", "status": 404}), 404
     return jsonify({"error": "Recurso no encontrado"}), 404
 
-# 6. Registro de Blueprints
+# Registro de las rutas modulares
 app.register_blueprint(auth_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(almacen_bp)
@@ -80,7 +79,7 @@ app.register_blueprint(promociones_bp)
 app.register_blueprint(proveedores_bp)
 app.register_blueprint(compras_bp)
 
-# 7. Ruta base y servicio de archivos frontend para desarrollo local
+# Servir los archivos estaticos del frontend
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
 
 @app.route("/")
@@ -101,11 +100,11 @@ def serve_frontend(path):
         return send_from_directory(FRONTEND_DIR, path)
     return jsonify({"error": "Recurso no encontrado"}), 404
 
-# 8. Arranque del servidor con Waitress (Multi-hilo)
+# Iniciar servidor con Waitress en el puerto 8000
 if __name__ == "__main__":
     try:
         from waitress import serve
-        print("[OK] Servidor backend escalado y optimizado arrancado en http://localhost:8000 (8 hilos)...")
+        print("[OK] Servidor backend corriendo en http://localhost:8000")
         serve(app, host="0.0.0.0", port=8000, threads=8)
     except ImportError:
         app.run(port=8000, debug=True)

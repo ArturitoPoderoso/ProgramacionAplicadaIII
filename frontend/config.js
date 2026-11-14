@@ -1,7 +1,4 @@
-// ==============================================================================
-// CONFIGURACIÓN DINÁMICA DE LA API (Localhost vs Render / Producción)
-// ==============================================================================
-
+// URL base de la API segun el entorno (local o produccion)
 const RENDER_BACKEND_URL = 'https://sistema-jesmi-api.onrender.com/api';
 
 const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')

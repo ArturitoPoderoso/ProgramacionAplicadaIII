@@ -6,6 +6,7 @@ import models
 
 almacen_bp = Blueprint("almacen", __name__)
 
+# Gestion de categorias de productos
 @almacen_bp.route("/api/categorias", methods=["GET", "POST"])
 def handle_categorias():
     if request.method == "POST":
@@ -131,7 +132,7 @@ def subcategoria_detail(sub_id):
     return jsonify({"message": "Subcategoría actualizada exitosamente"})
 
 def _calcular_siguiente_codigo_producto(db):
-    """Generador atómico de códigos correlativos de producto O(1)"""
+    # Genera el siguiente correlativo para el codigo de producto (ej: PROD-00045)
     ultimo_prod = db.query(models.Producto.codigo_producto)\
         .filter(models.Producto.codigo_producto.like("PROD-%"))\
         .order_by(models.Producto.id_producto.desc())\
@@ -193,7 +194,7 @@ def get_productos():
     todas_subcategorias = db.query(models.Subcategoria).all()
     subcat_dict = {s.id_subcategoria: s for s in todas_subcategorias}
     
-    # Optimización: Obtener inventario solo de los productos seleccionados (evita scans globales)
+    # Traemos solo el inventario de los productos de la pagina actual
     prod_ids = [p.id_producto for p in productos]
     inv_dict = {}
     if prod_ids:
@@ -278,7 +279,7 @@ def create_producto():
     if not codigo_input:
         codigo_input, _ = _calcular_siguiente_codigo_producto(db)
         
-    # Validación de seguridad: Mínimo 3 caracteres
+    # Validamos que el codigo tenga al menos 3 caracteres
     if len(codigo_input) < 3:
         return jsonify({"error": "El código de producto debe tener al menos 3 caracteres (Ej: PROD-00001)."}), 400
 
@@ -366,7 +367,7 @@ def seed_subcategorias():
                     created += 1
         db.commit()
 
-        # Reassign products without subcategory to first subcategory of their parent category
+        # Asignamos productos sin subcategoria a la primera subcategoria disponible de su categoria
         prods = db.query(models.Producto).all()
         reassigned = 0
         for prod in prods:

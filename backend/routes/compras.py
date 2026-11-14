@@ -20,7 +20,7 @@ def format_peru_datetime(dt):
         return dt.strftime("%Y-%m-%d %H:%M")
 
 def _calcular_siguiente_correlativo(db):
-    """Generador atómico y colisión-cero de correlativos de compra (O(1))"""
+    # Calcula el siguiente correlativo para la orden de compra segun el año actual
     year = datetime.now(PERU_TZ).year
     prefix = f"OC-{year}-"
     ultima_oc = db.query(models.OrdenCompra.correlativo)\
@@ -47,7 +47,7 @@ def _calcular_siguiente_correlativo(db):
 
 @compras_bp.route("/api/compras/siguiente-correlativo", methods=["GET"])
 def get_siguiente_correlativo_compra():
-    """Obtener el correlativo automático para la siguiente orden de compra (HU 19)"""
+    # Devuelve el siguiente correlativo disponible para una orden de compra
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -62,7 +62,7 @@ def get_siguiente_correlativo_compra():
 
 @compras_bp.route("/api/compras", methods=["POST"])
 def emitir_orden_compra():
-    """Emitir una nueva orden de compra a un proveedor específico (HU 19)"""
+    # Registra una nueva orden de compra con sus productos y proveedor
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Vendedores no pueden emitir órdenes de compra"}), 403
@@ -178,7 +178,7 @@ def emitir_orden_compra():
 
 @compras_bp.route("/api/compras", methods=["GET"])
 def get_compras():
-    """Listar compras / órdenes de compra filtradas por sede del usuario (HU 21)"""
+    # Lista las ordenes de compra con filtros por sede, estado o busqueda
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -241,7 +241,7 @@ def get_compras():
                 "observacion": o.observacion or ""
             })
 
-        # Soporte para paginación opcional en servidor
+        # Paginacion opcional si la pide el frontend
         page = request.args.get("page", type=int)
         limit = request.args.get("limit", default=15, type=int)
 
@@ -266,7 +266,7 @@ def get_compras():
 
 @compras_bp.route("/api/compras/<int:id_orden>", methods=["GET"])
 def get_detalle_compra(id_orden):
-    """Obtener el detalle completo de una orden de compra (HU 19, 20 & 21)"""
+    # Devuelve los datos y productos de una orden de compra especifica
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -330,10 +330,7 @@ def get_detalle_compra(id_orden):
 
 @compras_bp.route("/api/compras/<int:id_orden>/recibir", methods=["POST"])
 def recibir_orden_compra(id_orden):
-    """
-    Recepción de mercadería e ingreso automático de stock al almacén (HU 20).
-    Aumenta el stock_actual en inventario_sedes y registra movimiento de ENTRADA.
-    """
+    # Registra la recepcion de mercaderia, suma el stock al inventario y crea el movimiento de entrada
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Vendedores no pueden recibir mercadería"}), 403
@@ -420,7 +417,7 @@ def recibir_orden_compra(id_orden):
 
 @compras_bp.route("/api/compras/<int:id_orden>/anular", methods=["POST"])
 def anular_orden_compra(id_orden):
-    """Anular una orden de compra con reversión segura de stock si ya estaba recibida (HU 21)"""
+    # Anula la orden y descuenta el stock si la mercaderia ya habia ingresado al almacen
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Vendedores no pueden anular órdenes de compra"}), 403

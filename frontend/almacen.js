@@ -1,11 +1,5 @@
-/**
- * ==============================================================================
- * ALMACÉN E INVENTARIO - SISTEMA JESMI
- * ==============================================================================
- * Módulo encapsulado para gestión de productos, categorías, subcategorías,
- * stock por sedes, filtrado reactivo y paginación en memoria.
- * ==============================================================================
- */
+// Modulo de Almacen e Inventario
+// Administra productos, categorias, subcategorias y el stock por cada sede
 
 const AlmacenModule = {
     apiUrl: window.API_BASE_URL || 'http://localhost:8000/api',
@@ -386,7 +380,7 @@ const AlmacenModule = {
     },
 
     init() {
-        // Enlazar modales overlay
+        // Cierra el modal si se hace clic afuera
         const overlays = document.querySelectorAll('.modal-overlay');
         overlays.forEach(overlay => {
             overlay.addEventListener('click', (e) => {
@@ -396,7 +390,7 @@ const AlmacenModule = {
             });
         });
 
-        // Configurar buscador reactivo con debounce
+        // Busqueda en tiempo real con un pequeno retraso
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
             let almacenSearchTimeout;
@@ -408,7 +402,7 @@ const AlmacenModule = {
             });
         }
 
-        // Suscribirse a eventos de stock actualizados en toda la SPA
+        // Recarga el inventario si otra pantalla notifica cambios de stock
         if (window.EventBus) {
             window.EventBus.on('stock:updated', () => {
                 this.cargarProductosAlmacen();
@@ -417,9 +411,7 @@ const AlmacenModule = {
     }
 };
 
-// ==============================================================================
-// REGISTRO GLOBAL Y ALIAS PARA COMPATIBILIDAD CON ONCLICK EN EL HTML
-// ==============================================================================
+// Funciones accesibles desde los eventos onclick del HTML
 window.AlmacenModule = AlmacenModule;
 window.cargarCategorias = () => AlmacenModule.cargarCategorias();
 window.onCategoriaPadreChange = () => AlmacenModule.onCategoriaPadreChange();

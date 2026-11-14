@@ -1,19 +1,12 @@
-/**
- * ==============================================================================
- * ENRUTADOR DINÁMICO Y CARGADOR DE VISTAS SPA - SISTEMA JESMI
- * ==============================================================================
- * Carga componentes y vistas modulares bajo demanda desde frontend/views/ y
- * frontend/modals/ en tiempo real sin requerir compilación ni scripts intermedios.
- * ==============================================================================
- */
+// Enrutador para cargar las vistas y modales del dashboard segun el menu seleccionado
 
 const ViewRouter = {
-    // Caché en memoria para no volver a descargar vistas ya visitadas
+    // Cache de vistas ya visitadas para abrirlas mas rapido
     cache: {},
     currentSection: null,
     modalsLoaded: false,
 
-    // Mapa de rutas con archivo, título e inicializador correspondiente
+    // Lista de rutas con su archivo HTML, titulo e inicializador
     routes: {
         'section-usuarios': {
             file: 'views/usuarios.html',
@@ -136,7 +129,7 @@ const ViewRouter = {
         }
     },
 
-    // Cargar todos los modales modulares en segundo plano una sola vez
+    // Carga los archivos HTML de modales en el contenedor principal
     async loadModals() {
         if (this.modalsLoaded) return;
         const container = document.getElementById('modals-container');
@@ -161,7 +154,7 @@ const ViewRouter = {
             container.innerHTML = contents.join('\n');
             this.modalsLoaded = true;
 
-            // Re-vincular cierre de modales en overlay
+            // Cerramos modal al hacer clic en el fondo oscuro
             document.querySelectorAll('.modal-overlay').forEach(overlay => {
                 overlay.addEventListener('click', (e) => {
                     if (e.target === overlay) overlay.classList.remove('active');
@@ -172,12 +165,12 @@ const ViewRouter = {
         }
     },
 
-    // Navegar y montar vista en el DOM en tiempo real
+    // Cambia de seccion, carga el HTML de la vista y ejecuta su inicializador
     async navigate(sectionId) {
         const u = JSON.parse(localStorage.getItem('user')) || {};
         const role = u.activeRole || u.role || 'Vendedor';
 
-        // Redirección segura según permisos de rol
+        // Redireccionamos si el rol no tiene permiso para ver esa seccion
         if (role === 'Vendedor' && (sectionId === 'section-usuarios' || sectionId === 'section-historial-ventas' || sectionId === 'section-emitir-orden' || sectionId === 'section-historial-compras' || sectionId === 'section-proveedores')) {
             sectionId = 'section-ventas';
         }
@@ -194,14 +187,14 @@ const ViewRouter = {
         const viewport = document.getElementById('router-viewport');
         if (!viewport) return;
 
-        // Actualizar título de la página
+        // Actualizamos el titulo del encabezado
         const titleEl = document.getElementById('global-page-title');
         if (titleEl) titleEl.textContent = route.title;
 
-        // Actualizar estado activo en la barra lateral
+        // Marcamos la opcion activa en la barra lateral
         this.updateSidebarActive(sectionId);
 
-        // Si ya está en caché, usarla directamente
+        // Si ya esta en cache la reutilizamos
         if (!this.cache[sectionId]) {
             try {
                 const res = await fetch(route.file);
@@ -217,16 +210,15 @@ const ViewRouter = {
             }
         }
 
-        // Inyectar HTML de la vista activa
+        // Insertamos el HTML de la vista
         viewport.innerHTML = this.cache[sectionId];
 
-        // Asegurarse de que el contenedor de la sección sea visible
         const sectionEl = viewport.querySelector('.app-section');
         if (sectionEl) sectionEl.style.display = 'block';
 
         this.currentSection = sectionId;
 
-        // Inicializar la lógica del controlador correspondiente
+        // Ejecutamos la funcion que inicializa la logica de esa pantalla
         try {
             if (typeof route.init === 'function') {
                 route.init();
@@ -236,7 +228,7 @@ const ViewRouter = {
         }
     },
 
-    // Actualizar enlaces activos en el Sidebar
+    // Marca activo el boton de la barra lateral segun la seccion abierta
     updateSidebarActive(sectionId) {
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.sidebar-nav .nav-subitem').forEach(el => el.classList.remove('active'));
@@ -262,17 +254,17 @@ const ViewRouter = {
     }
 };
 
-// Función global retrocompatible para que todos los onclick="showSection('...')" sigan funcionando
+// Funcion global que ejecutan los botones del menu lateral
 function showSection(sectionId) {
     ViewRouter.navigate(sectionId);
 }
 
-// Inicialización de la SPA
+// Inicializamos la navegacion al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Cargar modales modulares en background (sin bloquear el renderizado inicial)
+    // Cargamos los modales en segundo plano
     ViewRouter.loadModals();
 
-    // 2. Determinar rol y vista de inicio
+    // Determinamos la seccion inicial segun el rol del usuario
     const role = typeof getUsuarioRolActual === 'function' 
         ? getUsuarioRolActual() 
         : ((JSON.parse(localStorage.getItem('user')) || {}).role || 'Vendedor');

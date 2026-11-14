@@ -5,6 +5,7 @@ import models
 
 users_bp = Blueprint("users", __name__)
 
+# Listado de sedes activas para selectores y filtros
 @users_bp.route("/api/sedes", methods=["GET"])
 def get_sedes():
     db = get_db()
@@ -16,6 +17,7 @@ def get_sedes():
         "telefono": s.telefono
     } for s in sedes])
 
+# Listado de usuarios del sistema con sus sedes y roles (admin o supervisor)
 @users_bp.route("/api/users", methods=["GET"])
 def get_users():
     user_role = request.headers.get("X-Role", "Administrador")
@@ -41,6 +43,7 @@ def get_users():
         "is_active": u.is_active
     } for u in users])
 
+# Creacion de un nuevo usuario en la base de datos
 @users_bp.route("/api/users", methods=["POST"])
 def create_user():
     user_role = request.headers.get("X-Role", "Administrador")
@@ -54,7 +57,7 @@ def create_user():
         
     db = get_db()
     
-    # Resolver la sede a partir del nombre o usar id_sede (por defecto 1)
+    # Buscamos la sede por nombre o dejamos la sede 1 por defecto
     sede_nombre = str(data.get("location", "")).strip()
     sede = db.query(models.Sede).filter(models.Sede.nombre.ilike(f"%{sede_nombre}%")).first()
     id_sede = sede.id_sede if sede else 1
@@ -73,7 +76,7 @@ def create_user():
     db.commit()
     db.refresh(db_user)
     
-    # Asignar rol
+    # Asignamos los roles al nuevo usuario
     roles_list = data.get("roles", [])
     if not roles_list:
         role_name = str(data.get("role", "Vendedor")).strip()
@@ -106,6 +109,7 @@ def create_user():
     }
     return jsonify(result)
 
+# Actualiza los datos personales, sede o roles del usuario
 @users_bp.route("/api/users/<int:user_id>", methods=["PUT"])
 def update_user(user_id):
     user_role = request.headers.get("X-Role", "Administrador")
@@ -146,7 +150,7 @@ def update_user(user_id):
             roles_list = [str(data["role"]).strip()]
             
         if roles_list is not None:
-            # Delete old roles
+            # Reemplazamos los roles asignados por la nueva lista
             db.query(models.UsuarioPerfil).filter(models.UsuarioPerfil.id_usuario == user_id).delete()
             for role_name in roles_list:
                 perfil = db.query(models.Perfil).filter(models.Perfil.nombre == role_name).first()
@@ -175,6 +179,7 @@ def update_user(user_id):
     }
     return jsonify(result)
 
+# Obtiene la informacion de un usuario por su ID
 @users_bp.route("/api/users/<int:user_id>", methods=["GET"])
 def get_user(user_id):
     db = get_db()
@@ -199,6 +204,7 @@ def get_user(user_id):
         "last_access": user.last_access
     })
 
+# Actualiza la contraseña del usuario
 @users_bp.route("/api/users/<int:user_id>/password", methods=["PUT"])
 def update_password(user_id):
     data = request.json or {}
@@ -216,6 +222,7 @@ def update_password(user_id):
     db.commit()
     return jsonify({"message": "Contraseña actualizada exitosamente"})
 
+# Elimina un usuario del sistema (solo admin o supervisor autorizado)
 @users_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
     user_role = request.headers.get("X-Role", "Administrador")

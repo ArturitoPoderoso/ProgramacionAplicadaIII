@@ -5,6 +5,7 @@ import models
 
 auth_bp = Blueprint("auth", __name__)
 
+# Validacion de credenciales de usuario y retorno de sesion con sede y roles
 @auth_bp.route("/api/login", methods=["POST"])
 def login():
     data = request.json or {}
