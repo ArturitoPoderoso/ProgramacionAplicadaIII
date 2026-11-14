@@ -1,0 +1,52 @@
+<div id="section-productos" class="app-section" style="display:none;">
+            
+
+            <div class="dashboard-area">
+                <div class="actions-bar">
+                    <div class="action-buttons" style="display: flex; gap: 10px;">
+                        <button class="btn-action" id="btn-nuevo-producto" onclick="abrirModalCrearProducto()">
+                            <i class="ph ph-plus"></i>
+                            Nuevo Producto
+                        </button>
+                    </div>
+                    
+                    <div class="search-and-filter">
+                        <div class="search-box">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="search-input" placeholder="Buscar producto o código..." oninput="filtrarProductosAlmacen(this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>CÓDIGO</th>
+                                <th>PRODUCTO</th>
+                                <th>CATEGORÍA</th>
+                                <th>SUBCATEGORÍA</th>
+                                <th>STOCK</th>
+                                <th>MIN.</th>
+                                <th>P. COMPRA</th>
+                                <th>P. VENTA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productos-tbody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination-bar">
+                    <span id="paginacion-info" class="pagination-info">Página 1 de 1 (0 productos)</span>
+                    <div class="pagination-controls">
+                        <button id="btn-pag-prev" class="btn-pag" onclick="cambiarPaginaAlmacen(-1)" disabled>
+                            <i class="ph ph-caret-left"></i> Anterior
+                        </button>
+                        <button id="btn-pag-next" class="btn-pag" onclick="cambiarPaginaAlmacen(1)" disabled>
+                            Siguiente <i class="ph ph-caret-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>

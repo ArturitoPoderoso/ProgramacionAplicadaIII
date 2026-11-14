@@ -1,0 +1,81 @@
+<div id="section-perfil" class="app-section" style="display:none;">
+            <!-- Topbar -->
+            
+
+            <!-- Dashboard Area: Profile -->
+            <div class="dashboard-area">
+                
+                <div class="profile-container">
+                    <!-- Left Card: User Info -->
+                    <div class="profile-card-left">
+                        <img src="https://ui-avatars.com/api/?name=User&background=random&size=200" alt="Avatar" class="profile-avatar-large" id="profile-avatar">
+                        
+                        <div class="profile-info-grid">
+                            <span class="profile-info-label">Correo:</span>
+                            <span class="profile-info-value" id="profile-email-lbl">---</span>
+                            
+                            <span class="profile-info-label">Teléfono:</span>
+                            <span class="profile-info-value" id="profile-phone-lbl">---</span>
+                            
+                            <span class="profile-info-label">Dni:</span>
+                            <span class="profile-info-value" id="profile-dni-lbl">---</span>
+                            
+                            <span class="profile-info-label">Rol:</span>
+                            <span class="profile-info-value" id="profile-role-lbl">---</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Card: Forms with Tabs -->
+                    <div class="profile-card-right">
+                        <div class="profile-tabs">
+                            <div class="profile-tab active" id="tab-personal">Datos personales</div>
+                            <div class="profile-tab" id="tab-password">Contraseña</div>
+                        </div>
+                        
+                        <!-- Tab 1: Datos Personales -->
+                        <div class="tab-pane active profile-form-content" id="pane-personal">
+                            <div class="form-group">
+                                <label>Nombres y Apellidos</label>
+                                <div class="form-control-readonly" id="profile-names-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Usuario</label>
+                                <div class="form-control-readonly" id="profile-username-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Dni</label>
+                                <div class="form-control-readonly" id="profile-dni-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Telefono</label>
+                                <div class="form-control-readonly" id="profile-phone-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Sexo</label>
+                                <div class="form-control-readonly" id="profile-gender-val">---</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Local/sede</label>
+                                <div class="form-control-readonly" id="profile-location-val">---</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab 2: Contraseña -->
+                        <div class="tab-pane profile-form-content single-column" id="pane-password">
+                            <div class="form-group">
+                                <label>Nueva contraseña</label>
+                                <input type="password" id="profile-new-password" placeholder="">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirmar contraseña</label>
+                                <input type="password" id="profile-confirm-password" placeholder="">
+                            </div>
+                            <div class="profile-actions" style="margin-top: 20px;">
+                                <!-- Save Button -->
+                                <button class="btn-save" onclick="guardarPerfil(this)">Guardar cambios</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>

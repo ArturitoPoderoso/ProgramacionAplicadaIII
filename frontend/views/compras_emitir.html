@@ -1,0 +1,139 @@
+<div id="section-emitir-orden" class="app-section" style="display:none;">
+    <div class="dashboard-area" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Cabecera de Emisión -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div>
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 4px 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="ph-fill ph-file-plus" style="color: #0284c7;"></i> Emitir Orden
+                </h3>
+                <p style="font-size: 0.84rem; color: #64748b; margin: 0;">Selecciona el proveedor y carga sus productos con precios pactados.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">N° Orden:</span>
+                <span id="oc-correlativo-display" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-family: monospace; font-size: 1.05rem; font-weight: 800; padding: 6px 14px; border-radius: 8px;">OC-XXXX</span>
+            </div>
+        </div>
+
+        <!-- Formulario: Proveedor y Fechas -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 16px;">
+            
+            <div style="display: grid; grid-template-columns: 2.5fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.84rem; color: #334155; margin-bottom: 6px; display: block;">
+                        Proveedor <span style="color: #ef4444;">*</span>
+                    </label>
+                    <select id="oc-select-proveedor" onchange="onProveedorOrdenChange()" class="form-select" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: #0f172a;">
+                        <option value="">-- Seleccionar Proveedor --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.84rem; color: #334155; margin-bottom: 6px; display: block;">
+                        Fecha Llegada
+                    </label>
+                    <input type="date" id="oc-fecha-esperada" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; color: #0f172a;">
+                </div>
+            </div>
+
+            <!-- Ficha Resumen Rápida del Proveedor Seleccionado -->
+            <div id="oc-proveedor-info-card" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    <div style="font-size: 0.82rem; color: #475569;">
+                        <strong>RUC:</strong> <span id="oc-card-ruc" style="font-family: monospace; font-weight: 700; color: #0f172a;">---</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: #475569;">
+                        <strong>Contacto:</strong> <span id="oc-card-contacto" style="font-weight: 600; color: #0f172a;">---</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: #475569;">
+                        <strong>Celular:</strong> <span id="oc-card-telefono" style="font-weight: 700; color: #059669;">---</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: #475569;">
+                        <strong>Correo:</strong> <span id="oc-card-correo" style="color: #0284c7;">---</span>
+                    </div>
+                </div>
+                <div style="font-size: 0.78rem; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
+                    <i class="ph-bold ph-lock-key"></i> 1 Proveedor
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Selector de Productos del Catálogo del Proveedor -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 16px;">
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <i class="ph-bold ph-package" style="color: #0284c7;"></i> Agregar Productos
+            </h4>
+
+            <div style="display: grid; grid-template-columns: 3fr 1fr 1fr auto; gap: 14px; align-items: flex-end;">
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 4px; display: block;">Producto *</label>
+                    <select id="oc-select-producto" onchange="onProductoOrdenChange()" class="form-select" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem;">
+                        <option value="">-- Seleccionar Producto --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 4px; display: block;">Precio (S/) *</label>
+                    <input type="number" id="oc-item-precio" step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-weight: 700; color: #0284c7;">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 4px; display: block;">Cantidad *</label>
+                    <input type="number" id="oc-item-cantidad" value="1" min="1" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-weight: 700; text-align: center;">
+                </div>
+
+                <button type="button" onclick="agregarItemAOrden()" class="btn-save" style="position: static; background: #0284c7; padding: 10px 20px; font-size: 0.88rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; height: 42px;">
+                    <i class="ph-bold ph-plus"></i> Agregar Ítem
+                </button>
+            </div>
+
+            <!-- Tabla de Ítems de la Orden -->
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-top: 6px;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; font-size: 0.82rem; text-align: left;">
+                            <th style="padding: 10px 14px;">CÓDIGO</th>
+                            <th style="padding: 10px 14px;">PRODUCTO</th>
+                            <th style="padding: 10px 14px; text-align: right;">PRECIO UNITARIO</th>
+                            <th style="padding: 10px 14px; text-align: center;">CANTIDAD</th>
+                            <th style="padding: 10px 14px; text-align: right;">SUBTOTAL</th>
+                            <th style="padding: 10px 14px; text-align: center;">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="oc-items-tbody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 30px; color: #94a3b8; font-style: italic;">
+                                No hay productos agregados a la orden aún. Selecciona un producto y haz clic en <strong>"+ Agregar Ítem"</strong>.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Totales y Botón de Emisión -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                <button type="button" onclick="limpiarFormularioOrden()" class="btn-secondary" style="padding: 10px 18px; font-weight: 600;">
+                    <i class="ph ph-trash"></i> Limpiar Orden
+                </button>
+
+                <div style="display: flex; align-items: center; gap: 24px;">
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.78rem; color: #64748b;">Subtotal Neto: <span id="oc-total-subtotal" style="font-weight: 700; color: #1e293b;">S/. 0.00</span></div>
+                        <div style="font-size: 0.78rem; color: #64748b;">IGV Estimado (18%): <span id="oc-total-igv" style="font-weight: 700; color: #1e293b;">S/. 0.00</span></div>
+                        <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                            Total Orden: <span id="oc-total-general" style="color: #0284c7;">S/. 0.00</span>
+                        </div>
+                    </div>
+
+                    <button type="button" id="btn-emitir-orden-submit" onclick="emitirOrdenCompra()" class="btn-save"
+                            style="position: static; background: linear-gradient(135deg, #0284c7, #0369a1); padding: 12px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35); cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="ph-bold ph-paper-plane-tilt"></i> Emitir Orden
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>

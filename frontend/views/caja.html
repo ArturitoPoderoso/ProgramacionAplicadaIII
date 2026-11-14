@@ -1,0 +1,67 @@
+<div id="section-ventas" class="app-section" style="display:none;">
+            
+
+            <div class="dashboard-area" style="padding-top: 10px;">
+                <div class="pos-container">
+                    
+                    <!-- Lado izquierdo: Productos -->
+                    <div class="products-section">
+                        <div class="search-box">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="search-pos" placeholder="Buscar producto o código de barras..." onkeyup="filtrarProductos()">
+                        </div>
+                        <div class="product-grid" id="product-grid">
+                            <!-- Productos cargados dinamicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Lado derecho: Carrito -->
+                    <div class="cart-section">
+                        <h3 style="margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Carrito de Ventas</h3>
+                        <div class="cart-items" id="cart-items">
+                            <div style="text-align:center; color:#888; margin-top:50px;">El carrito está vacío</div>
+                        </div>
+                        
+                        <div class="cart-total-section">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.76rem; font-weight: 700;">Cliente <span style="color: #ef4444;">*</span></label>
+                                    <input type="text" id="pos-cliente-nombre" placeholder="Nombre completo" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;" required>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.76rem; font-weight: 700;">DNI / RUC <span style="color: #ef4444;">*</span></label>
+                                    <input type="text" id="pos-cliente-doc" placeholder="DNI o RUC" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;" maxlength="11" required>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 8px;">
+                                <label style="font-size: 0.76rem; font-weight: 700;">Método de Pago</label>
+                                <select class="form-select" id="metodo-pago" style="padding: 6px 8px; font-size: 0.85rem; border-radius: 6px;">
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Tarjeta">Tarjeta (POS)</option>
+                                    <option value="Yape/Plin">Yape / Plin</option>
+                                </select>
+                            </div>
+
+
+
+                            <!-- Desglose de Totales -->
+                            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; margin-bottom: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; color: #64748b;">
+                                    <span>Subtotal:</span>
+                                    <span id="cart-subtotal" style="font-weight: 600;">S/ 0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="total-row">
+                                <span>TOTAL A PAGAR:</span>
+                                <span id="cart-total" style="color: #16a34a; font-weight: 800;">S/ 0.00</span>
+                            </div>
+
+                            <button class="btn-save" id="btn-procesar-venta" style="position: static; width: 100%; margin-top: 12px; background: #16a34a; font-size: 1rem; padding: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; cursor: pointer;" onclick="procesarVenta()">
+                                <i class="ph-bold ph-check-circle" style="font-size: 1.25rem;"></i> Procesar Venta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>

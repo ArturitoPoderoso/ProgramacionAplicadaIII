@@ -23,22 +23,6 @@ class UsuarioPerfil(Base):
     id_perfil = Column(Integer, ForeignKey('perfiles.id_perfil', ondelete="CASCADE"), primary_key=True)
     estado_registro = Column(Integer, default=1)
 
-class OpcionMenu(Base):
-    __tablename__ = "opciones_menu"
-    id_opcion_menu = Column(Integer, primary_key=True)
-    nombre = Column(String, nullable=False)
-    url_menu = Column(String)
-    descripcion = Column(String)
-    id_padre = Column(Integer, ForeignKey('opciones_menu.id_opcion_menu', ondelete="CASCADE"))
-    estado_registro = Column(Integer, default=1)
-
-class OpcionMenuPerfil(Base):
-    __tablename__ = "opciones_menu_perfiles"
-    id_opcion_menu = Column(Integer, ForeignKey('opciones_menu.id_opcion_menu', ondelete="CASCADE"), primary_key=True)
-    id_perfil = Column(Integer, ForeignKey('perfiles.id_perfil', ondelete="CASCADE"), primary_key=True)
-    orden = Column(Integer, default=0)
-    estado_registro = Column(Integer, default=1)
-
 class User(Base):
     __tablename__ = "usuarios"
 
@@ -115,8 +99,8 @@ class Producto(Base):
 class InventarioSede(Base):
     __tablename__ = "inventario_sedes"
     id_inventario = Column(Integer, primary_key=True, index=True)
-    id_producto = Column(Integer, ForeignKey('productos.id_producto', ondelete="CASCADE"))
-    id_sede = Column(Integer, ForeignKey('sedes.id_sede', ondelete="CASCADE"))
+    id_producto = Column(Integer, ForeignKey('productos.id_producto', ondelete="CASCADE"), index=True)
+    id_sede = Column(Integer, ForeignKey('sedes.id_sede', ondelete="CASCADE"), index=True)
     precio_compra = Column(Float, nullable=False)
     precio_venta = Column(Float, nullable=False)
     stock_actual = Column(Integer, default=0)
@@ -129,11 +113,11 @@ class InventarioSede(Base):
 class MovimientoAlmacen(Base):
     __tablename__ = "movimientos_almacen"
     id_movimiento = Column(Integer, primary_key=True, index=True)
-    id_producto = Column(Integer, ForeignKey('productos.id_producto'))
-    id_sede = Column(Integer, ForeignKey('sedes.id_sede'))
+    id_producto = Column(Integer, ForeignKey('productos.id_producto'), index=True)
+    id_sede = Column(Integer, ForeignKey('sedes.id_sede'), index=True)
     tipo = Column(String, nullable=False) # 'ENTRADA', 'SALIDA', 'AJUSTE'
     cantidad = Column(Integer, nullable=False)
-    fecha = Column(DateTime(timezone=True), server_default=func.now())
+    fecha = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'))
     observacion = Column(Text)
 
@@ -147,12 +131,12 @@ class Venta(Base):
     __tablename__ = "ventas"
     id_venta = Column(Integer, primary_key=True, index=True)
     correlativo = Column(String, unique=True, index=True, nullable=False)
-    fecha_venta = Column(DateTime(timezone=True), server_default=func.now())
+    fecha_venta = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     total = Column(Float, nullable=False)
     descuento_total = Column(Float, default=0.0)
     metodo_pago = Column(String, nullable=False) # Efectivo, Tarjeta, Yape
-    id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'))
-    id_sede = Column(Integer, ForeignKey('sedes.id_sede'))
+    id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'), index=True)
+    id_sede = Column(Integer, ForeignKey('sedes.id_sede'), index=True)
     estado_registro = Column(Integer, default=1)
 
     usuario = relationship("User")
@@ -162,8 +146,8 @@ class Venta(Base):
 class DetalleVenta(Base):
     __tablename__ = "detalle_ventas"
     id_detalle = Column(Integer, primary_key=True, index=True)
-    id_venta = Column(Integer, ForeignKey('ventas.id_venta', ondelete="CASCADE"))
-    id_producto = Column(Integer, ForeignKey('productos.id_producto'))
+    id_venta = Column(Integer, ForeignKey('ventas.id_venta', ondelete="CASCADE"), index=True)
+    id_producto = Column(Integer, ForeignKey('productos.id_producto'), index=True)
     cantidad = Column(Integer, nullable=False)
     precio_unitario = Column(Float, nullable=False)
     descuento_unitario = Column(Float, default=0.0)
@@ -253,8 +237,8 @@ class Proveedor(Base):
 class ProveedorProducto(Base):
     __tablename__ = "proveedor_productos"
     id_proveedor_producto = Column(Integer, primary_key=True, index=True)
-    id_proveedor = Column(Integer, ForeignKey('proveedores.id_proveedor', ondelete="CASCADE"), nullable=False)
-    id_producto = Column(Integer, ForeignKey('productos.id_producto', ondelete="CASCADE"), nullable=False)
+    id_proveedor = Column(Integer, ForeignKey('proveedores.id_proveedor', ondelete="CASCADE"), nullable=False, index=True)
+    id_producto = Column(Integer, ForeignKey('productos.id_producto', ondelete="CASCADE"), nullable=False, index=True)
     precio_compra = Column(Float, nullable=False)
     codigo_proveedor = Column(String(50), default="")
     estado_registro = Column(Integer, default=1)
@@ -268,13 +252,13 @@ class OrdenCompra(Base):
     __tablename__ = "ordenes_compra"
     id_orden_compra = Column(Integer, primary_key=True, index=True)
     correlativo = Column(String(30), unique=True, index=True, nullable=False)
-    id_proveedor = Column(Integer, ForeignKey('proveedores.id_proveedor'), nullable=False)
-    id_sede = Column(Integer, ForeignKey('sedes.id_sede'), nullable=False)
+    id_proveedor = Column(Integer, ForeignKey('proveedores.id_proveedor'), nullable=False, index=True)
+    id_sede = Column(Integer, ForeignKey('sedes.id_sede'), nullable=False, index=True)
     id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'), nullable=False)
-    fecha_emision = Column(DateTime(timezone=True), server_default=func.now())
+    fecha_emision = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     fecha_esperada = Column(String(15), default="")
     fecha_recepcion = Column(DateTime(timezone=True), nullable=True)
-    estado = Column(String(25), default="PENDIENTE")  # PENDIENTE, RECIBIDA, ANULADA
+    estado = Column(String(25), default="PENDIENTE", index=True)  # PENDIENTE, RECIBIDA, ANULADA
     total = Column(Float, default=0.0)
     observacion = Column(Text, default="")
     estado_registro = Column(Integer, default=1)
@@ -289,8 +273,8 @@ class OrdenCompra(Base):
 class DetalleOrdenCompra(Base):
     __tablename__ = "detalle_ordenes_compra"
     id_detalle_oc = Column(Integer, primary_key=True, index=True)
-    id_orden_compra = Column(Integer, ForeignKey('ordenes_compra.id_orden_compra', ondelete="CASCADE"), nullable=False)
-    id_producto = Column(Integer, ForeignKey('productos.id_producto'), nullable=False)
+    id_orden_compra = Column(Integer, ForeignKey('ordenes_compra.id_orden_compra', ondelete="CASCADE"), nullable=False, index=True)
+    id_producto = Column(Integer, ForeignKey('productos.id_producto'), nullable=False, index=True)
     cantidad_solicitada = Column(Integer, nullable=False)
     cantidad_recibida = Column(Integer, default=0)
     precio_unitario = Column(Float, nullable=False)

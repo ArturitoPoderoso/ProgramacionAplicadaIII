@@ -1,57 +1,102 @@
 /**
  * dashboard.js
- * Maneja la interactividad del menú, modales y notificaciones del dashboard.
+ * Orquestador principal de UI, EventBus reactivo, Toasts y Modales - Sistema Jesmi
  */
 
-// ------------------------------------
-// Notificaciones Toast (Simulación de éxito)
-// ------------------------------------
-function showNotification(message, type = 'success') {
-    // Si no existe el contenedor de notificaciones en el documento actual, lo creamos
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.style.position = 'fixed';
-        container.style.bottom = '20px';
-        container.style.right = '20px';
-        container.style.zIndex = '9999';
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.gap = '10px';
-        document.body.appendChild(container);
+// ==============================================================================
+// 1. EVENT BUS GLOBAL (Comunicación reactiva entre vistas SPA)
+// ==============================================================================
+window.EventBus = {
+    events: {},
+    on(event, callback) {
+        if (!this.events[event]) this.events[event] = [];
+        this.events[event].push(callback);
+    },
+    emit(event, data) {
+        if (this.events[event]) {
+            this.events[event].forEach(cb => {
+                try { cb(data); } catch (e) { console.error('Error en EventBus listener:', e); }
+            });
+        }
     }
+};
 
-    const toast = document.createElement('div');
-    toast.style.background = type === 'success' ? '#4CAF50' : '#E53935';
-    toast.style.color = '#fff';
-    toast.style.padding = '12px 24px';
-    toast.style.borderRadius = '8px';
-    toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    toast.style.fontFamily = "'Inter', sans-serif";
-    toast.style.fontWeight = '600';
-    toast.style.fontSize = '0.9rem';
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(20px)';
-    toast.style.transition = 'all 0.3s ease';
-    toast.innerText = message;
+// ==============================================================================
+// 2. SISTEMA UNIFICADO DE TOAST NOTIFICATIONS (UI/UX)
+// ==============================================================================
+window.Toast = {
+    show(message, type = 'success', duration = 3000) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.position = 'fixed';
+            container.style.bottom = '24px';
+            container.style.right = '24px';
+            container.style.zIndex = '99999';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '10px';
+            container.style.pointerEvents = 'none';
+            document.body.appendChild(container);
+        }
 
-    container.appendChild(toast);
-
-    // Animación de entrada
-    requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
-    });
-
-    // Remover después de 3 segundos
-    setTimeout(() => {
+        const toast = document.createElement('div');
+        toast.style.pointerEvents = 'auto';
+        toast.style.minWidth = '280px';
+        toast.style.maxWidth = '420px';
+        toast.style.padding = '14px 20px';
+        toast.style.borderRadius = '10px';
+        toast.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2)';
+        toast.style.fontFamily = "'Inter', sans-serif";
+        toast.style.fontWeight = '600';
+        toast.style.fontSize = '0.92rem';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '12px';
+        toast.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
         toast.style.opacity = '0';
-        toast.style.transform = 'translateY(20px)';
+        toast.style.transform = 'translateY(15px) scale(0.96)';
+
+        let icon = 'ph-check-circle';
+        let bg = '#10b981'; // Emerald 500
+        if (type === 'error') {
+            bg = '#ef4444'; // Red 500
+            icon = 'ph-warning-circle';
+        } else if (type === 'warning') {
+            bg = '#f59e0b'; // Amber 500
+            icon = 'ph-warning';
+        } else if (type === 'info') {
+            bg = '#3b82f6'; // Blue 500
+            icon = 'ph-info';
+        }
+
+        toast.style.background = bg;
+        toast.style.color = '#ffffff';
+        toast.innerHTML = `<i class="ph-bold ${icon}" style="font-size: 1.3rem;"></i><span>${message}</span>`;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0) scale(1)';
+        });
+
         setTimeout(() => {
-            toast.remove();
-        }, 300);
-    }, 3000);
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(15px) scale(0.96)';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    },
+    success(msg, d) { this.show(msg, 'success', d); },
+    error(msg, d) { this.show(msg, 'error', d); },
+    warning(msg, d) { this.show(msg, 'warning', d); },
+    info(msg, d) { this.show(msg, 'info', d); }
+};
+
+// Retrocompatibilidad con showNotification existente
+function showNotification(message, type = 'success') {
+    window.Toast.show(message, type);
 }
 
 // ------------------------------------
@@ -642,29 +687,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (avatarEl) {
         const nameForAvatar = encodeURIComponent(currentUser.first_name || currentUser.username || 'User') + '+' + encodeURIComponent(currentUser.last_name || '');
         avatarEl.src = `https://ui-avatars.com/api/?name=${nameForAvatar}&background=random`;
-    }
-
-    // Funcionalidad de Búsqueda
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', (e) => {
-            const term = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#users-tbody tr');
-            rows.forEach(row => {
-                const idText = row.cells[0]?.textContent.toLowerCase() || '';
-                const usernameText = row.cells[1]?.textContent.toLowerCase() || '';
-                if (idText.includes(term) || usernameText.includes(term)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    }
-
-    // Si estamos en perfil.html, cargar datos del perfil
-    if (document.getElementById('profile-email-lbl')) {
-        loadUserProfile(currentUser.id);
     }
 });
 

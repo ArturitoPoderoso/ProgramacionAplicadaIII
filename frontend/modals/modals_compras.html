@@ -1,0 +1,174 @@
+<div class="modal-overlay" id="modal-confirmacion-custom" style="z-index: 100000; backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65);">
+        <div class="modal-container" style="max-width: 440px; border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1);">
+            <div style="padding: 24px 24px 18px 24px; text-align: center;">
+                <div id="modal-confirm-icon-wrapper" style="width: 60px; height: 60px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 16px auto;">
+                    <i class="ph-bold ph-trash" id="modal-confirm-icon"></i>
+                </div>
+                <h3 id="modal-confirm-titulo" style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">¿Estás seguro?</h3>
+                <p id="modal-confirm-mensaje" style="font-size: 0.88rem; color: #475569; margin: 0 0 14px 0; line-height: 1.45;"></p>
+                
+                <div id="modal-confirm-nota-wrapper" style="background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px; padding: 10px 14px; text-align: left; margin-bottom: 4px; display: none;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: #991b1b; margin-bottom: 2px;">Nota de Integridad:</div>
+                    <div id="modal-confirm-nota" style="font-size: 0.78rem; color: #7f1d1d; line-height: 1.35;"></div>
+                </div>
+            </div>
+            
+            <div style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" id="modal-confirm-btn-cancelar" class="btn-secondary" style="padding: 8px 18px; border-radius: 8px; font-weight: 600;">Cancelar</button>
+                <button type="button" id="modal-confirm-btn-aceptar" style="background: #dc2626; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);">
+                    <i class="ph-bold ph-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+
+<div class="modal-overlay" id="modal-recibir-compra" style="z-index: 100000; backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65);">
+        <div class="modal-container" style="max-width: 620px; border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #16a34a, #15803d); color: white; padding: 16px 22px;">
+                <h3 style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-bold ph-package"></i> Recibir Mercadería
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-recibir-compra')"><i class="ph ph-x"></i></button>
+            </div>
+            <div style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px;">
+                    <div>
+                        <div style="font-size: 0.78rem; color: #166534; font-weight: 600;">ORDEN DE COMPRA:</div>
+                        <div id="modal-recibir-oc-correlativo" style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: #15803d;">OC-XXXX</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.78rem; color: #166534; font-weight: 600;">PROVEEDOR:</div>
+                        <div id="modal-recibir-oc-proveedor" style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">---</div>
+                    </div>
+                </div>
+
+                <div style="font-size: 0.84rem; color: #475569; line-height: 1.45;">
+                    Verifica los productos recibidos. Al confirmar, el sistema <strong>sumará automáticamente el stock al inventario de tu sede</strong> y registrará la entrada oficial en el Kardex.
+                </div>
+
+                <!-- Tabla de productos a ingresar -->
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 220px; overflow-y: auto;">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8fafc; color: #475569; font-size: 0.8rem; text-align: left;">
+                                <th style="padding: 8px 12px;">CÓDIGO</th>
+                                <th style="padding: 8px 12px;">PRODUCTO</th>
+                                <th style="padding: 8px 12px; text-align: center;">CANTIDAD</th>
+                                <th style="padding: 8px 12px; text-align: right;">PRECIO</th>
+                                <th style="padding: 8px 12px; text-align: right;">SUBTOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-recibir-oc-items-tbody">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-recibir-compra')">Cancelar</button>
+                <button type="button" id="btn-confirmar-recepcion-submit" onclick="confirmarRecepcionCompra()"
+                        style="background: #16a34a; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);">
+                    <i class="ph-bold ph-check"></i> Confirmar Recepción
+                </button>
+            </div>
+        </div>
+    </div>
+
+<div class="modal-overlay" id="modal-documento-orden-compra" style="z-index: 100000; backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65);">
+        <div class="modal-container" style="max-width: 760px; border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 16px 22px;">
+                <h3 style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-bold ph-file-text"></i> Orden de Compra
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-documento-orden-compra')"><i class="ph ph-x"></i></button>
+            </div>
+
+            <!-- Área Imprimible / Vista Documental -->
+            <div id="doc-oc-printable-area" style="padding: 26px; background: white; color: #1e293b; max-height: 520px; overflow-y: auto;">
+                
+                <!-- Encabezado Empresarial -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 16px; margin-bottom: 18px;">
+                    <div>
+                        <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">FERRETERÍA JESMI</div>
+                        <div style="font-size: 0.82rem; color: #64748b;">RUC: 20601234567 • Materiales y Herramientas para la Construcción</div>
+                        <div style="font-size: 0.82rem; color: #64748b;">Sede de Recepción: <strong id="doc-oc-sede-nombre" style="color: #0f172a;">---</strong></div>
+                        <div style="font-size: 0.8rem; color: #94a3b8;" id="doc-oc-sede-direccion">---</div>
+                    </div>
+                    <div style="text-align: right; border: 2px solid #0284c7; padding: 10px 18px; border-radius: 10px; background: #f0f9ff;">
+                        <div style="font-size: 0.78rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">ORDEN DE COMPRA</div>
+                        <div id="doc-oc-correlativo" style="font-size: 1.25rem; font-weight: 900; font-family: monospace; color: #0284c7;">OC-XXXX</div>
+                        <div id="doc-oc-estado" style="font-size: 0.75rem; font-weight: 800; color: #b45309; text-transform: uppercase; margin-top: 2px;">PENDIENTE</div>
+                    </div>
+                </div>
+
+                <!-- Bloques Proveedor y Fechas -->
+                <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;">
+                    <div>
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">PROVEEDOR SELECCIONADO:</div>
+                        <div id="doc-oc-prov-nombre" style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-top: 2px;">---</div>
+                        <div style="font-size: 0.82rem; color: #475569;">RUC: <strong id="doc-oc-prov-ruc" style="font-family: monospace;">---</strong></div>
+                        <div style="font-size: 0.82rem; color: #475569;">Contacto: <span id="doc-oc-prov-contacto">---</span> • Celular: <span id="doc-oc-prov-telefono" style="color: #059669; font-weight: 700;">---</span></div>
+                        <div style="font-size: 0.8rem; color: #64748b;" id="doc-oc-prov-correo">---</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">DETALLES DE EMISIÓN:</div>
+                        <div style="font-size: 0.82rem; color: #475569; margin-top: 4px;">Fecha Emisión: <strong id="doc-oc-fecha-emision">---</strong></div>
+                        <div style="font-size: 0.82rem; color: #475569;">Fecha Entrega: <strong id="doc-oc-fecha-esperada" style="color: #0284c7;">---</strong></div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;" id="doc-oc-observaciones"></div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Productos Solicitados -->
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                    <thead>
+                        <tr style="background: #f1f5f9; color: #334155; font-size: 0.8rem; border-bottom: 2px solid #cbd5e1;">
+                            <th style="padding: 8px 10px; text-align: center; width: 40px;">#</th>
+                            <th style="padding: 8px 10px; text-align: left;">CÓDIGO</th>
+                            <th style="padding: 8px 10px; text-align: left;">DESCRIPCIÓN DEL PRODUCTO</th>
+                            <th style="padding: 8px 10px; text-align: center;">CANT.</th>
+                            <th style="padding: 8px 10px; text-align: right;">P. UNITARIO</th>
+                            <th style="padding: 8px 10px; text-align: right;">SUBTOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="doc-oc-items-tbody">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+
+                <!-- Resumen de Totales Documental -->
+                <div style="display: flex; justify-content: flex-end;">
+                    <div style="width: 260px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">
+                            <span>Subtotal:</span>
+                            <span id="doc-oc-subtotal" style="font-weight: 600;">S/. 0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #475569; margin-bottom: 6px;">
+                            <span>IGV (18%):</span>
+                            <span id="doc-oc-igv" style="font-weight: 600;">S/. 0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 1.05rem; font-weight: 800; color: #0f172a; border-top: 1px solid #cbd5e1; padding-top: 6px;">
+                            <span>TOTAL:</span>
+                            <span id="doc-oc-total" style="color: #0284c7;">S/. 0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-documento-orden-compra')">Cerrar</button>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="enviarOrdenPorWhatsApp(ordenSeleccionadaAccion?.id_orden_compra)"
+                            style="background: #16a34a; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="ph-bold ph-whatsapp-logo"></i> Enviar WhatsApp
+                    </button>
+                    <button type="button" onclick="imprimirOrdenCompraActual()"
+                            style="background: #0284c7; color: white; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="ph-bold ph-printer"></i> Imprimir PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>

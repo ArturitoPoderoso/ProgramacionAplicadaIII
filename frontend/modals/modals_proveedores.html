@@ -1,0 +1,130 @@
+<div class="modal-overlay" id="modal-proveedor">
+        <div class="modal-container" style="max-width: 580px; border-radius: 12px; overflow: hidden; padding: 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 16px 20px;">
+                <h3 id="modal-proveedor-title" style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-truck"></i> Registrar Nuevo Proveedor
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-proveedor')"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <div class="modal-body" style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+                <input type="hidden" id="edit-proveedor-id">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Número de RUC <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="prov-ruc" maxlength="11" oninput="validarInputRucEnTiempoReal(this)" placeholder="Ej: 20601234567" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; font-family: monospace;">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Celular (9 dígitos) <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="prov-telefono" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 9)" placeholder="Ej: 987654321" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Razón Social / Nombre Comercial <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="prov-razon-social" placeholder="Ej: Distribuidora Ferretera del Norte S.A.C." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Persona de Contacto</label>
+                        <input type="text" id="prov-contacto" placeholder="Ej: Carlos Mendoza" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Correo Electrónico</label>
+                        <input type="email" id="prov-correo" placeholder="Ej: ventas@ferreternorte.com" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155;">Dirección Fiscal / Almacén</label>
+                    <input type="text" id="prov-direccion" placeholder="Ej: Av. Argentina 1450, Cercado de Lima" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-proveedor')">Cancelar</button>
+                <button type="button" id="btn-guardar-proveedor" onclick="guardarProveedor()" class="btn-save" style="position: static; background: #0284c7; padding: 9px 22px;">Guardar Proveedor</button>
+            </div>
+        </div>
+    </div>
+
+<div class="modal-overlay" id="modal-catalogo-proveedor">
+        <div class="modal-container" style="max-width: 780px; border-radius: 12px; overflow: hidden; padding: 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 16px 20px;">
+                <div>
+                    <h3 style="color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <i class="ph-fill ph-package" style="color: #38bdf8;"></i> Catálogo de Productos del Proveedor
+                        <span id="catalogo-badge-total" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 12px; margin-left: 6px;">0 productos</span>
+                    </h3>
+                    <div id="catalogo-proveedor-info" style="margin-top: 4px;">
+                        <!-- Cargado dinámicamente -->
+                    </div>
+                </div>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-catalogo-proveedor')"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 18px; max-height: 75vh; overflow-y: auto;">
+                
+                <!-- Formulario de Asociación de Producto -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                        <i class="ph-bold ph-plus-circle" style="color: #0284c7;"></i> Vincular Nuevo Producto a este Proveedor
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 180px auto; gap: 12px; align-items: flex-end;">
+                        <div>
+                            <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Producto del Inventario *</label>
+                            <select id="catalogo-select-producto" onchange="onSelectProductoCatalogo()" class="form-select" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                <option value="">-- Selecciona un producto para vincular --</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Precio Compra Pactado (S/) *</label>
+                            <input type="number" id="catalogo-precio-compra" step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600;">
+                        </div>
+
+                        <div>
+                            <button onclick="asociarProductoACatalogo()" class="btn-save" style="position: static; background: #0284c7; padding: 9px 18px; font-size: 0.85rem; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+                                <i class="ph-bold ph-plus-circle"></i> Vincular Producto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Productos del Catálogo con Scroll Permanente y Cabecera Fija -->
+                <div style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: white;">
+                    <div class="catalogo-tabla-scroll" style="border-bottom: 1px solid #e2e8f0;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.84rem;">
+                            <thead style="background: #f1f5f9; color: #475569; font-weight: 700; text-align: left; position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">
+                                <tr>
+                                    <th style="padding: 10px 14px; background: #f1f5f9;">CÓDIGO INTERNO</th>
+                                    <th style="padding: 10px 14px; background: #f1f5f9;">PRODUCTO / CATEGORÍA</th>
+                                    <th style="padding: 10px 14px; text-align: right; background: #f1f5f9;">PRECIO DE COMPRA</th>
+                                    <th style="padding: 10px 14px; text-align: center; background: #f1f5f9;">ACCIONES</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalogo-tbody">
+                                <!-- Renderizado dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="padding: 8px 14px; background: #f8fafc; font-size: 0.78rem; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="display: flex; align-items: center; gap: 5px;">
+                            <i class="ph-bold ph-arrows-down-up" style="color: #0284c7;"></i> Desliza la barra para ver todos los productos
+                        </span>
+                        <span id="catalogo-contador-footer" style="font-weight: 700; color: #0284c7;">0 productos</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-catalogo-proveedor')">Cerrar</button>
+            </div>
+        </div>
+    </div>

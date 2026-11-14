@@ -1,0 +1,108 @@
+<div id="section-historial-compras" class="app-section" style="display:none;">
+    <div class="dashboard-area" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Tarjetas de Resumen KPI -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                    <i class="ph-fill ph-file-text"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Total Órdenes</div>
+                    <div id="kpi-compras-total" style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">0</div>
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                    <i class="ph-fill ph-hourglass-high"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Pendientes</div>
+                    <div id="kpi-compras-pendientes" style="font-size: 1.6rem; font-weight: 800; color: #b45309;">0</div>
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 12px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                    <i class="ph-fill ph-hand-coins"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Total Recibido</div>
+                    <div id="kpi-compras-monto" style="font-size: 1.6rem; font-weight: 800; color: #16a34a;">S/. 0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestañas (Tabs) y Barra de Búsqueda -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            
+            <!-- Pestañas Cortas -->
+            <div style="display: flex; gap: 8px;">
+                <button type="button" id="tab-compras-pendientes" onclick="cambiarTabCompras('pendientes')"
+                        style="background: #0284c7; color: white; border: 1px solid #0284c7; padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                    <i class="ph-bold ph-hourglass-medium"></i>
+                    <span>Pendientes</span>
+                    <span id="badge-count-pendientes" style="background: rgba(255,255,255,0.25); color: white; padding: 1px 6px; border-radius: 10px; font-size: 0.75rem;">0</span>
+                </button>
+
+                <button type="button" id="tab-compras-todas" onclick="cambiarTabCompras('todas')"
+                        style="background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    <i class="ph-bold ph-archive-box"></i>
+                    <span>Historial</span>
+                </button>
+            </div>
+
+            <!-- Buscador y Botón Crear -->
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end; max-width: 500px;">
+                <div style="position: relative; width: 100%;">
+                    <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1rem;"></i>
+                    <input type="text" id="compras-search-input" placeholder="Buscar por código OC, proveedor o RUC..."
+                           style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.86rem; outline: none;">
+                </div>
+
+                <button type="button" onclick="showSection('section-emitir-orden')" class="btn-save"
+                        style="position: static; background: #0284c7; padding: 9px 16px; border-radius: 8px; font-weight: 700; font-size: 0.86rem; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer;">
+                    <i class="ph-bold ph-plus"></i> Nueva Orden
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Tabla de Órdenes de Compra -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; font-size: 0.82rem; text-align: left;">
+                            <th style="padding: 12px 16px;">CÓDIGO OC</th>
+                            <th style="padding: 12px 16px;">PROVEEDOR</th>
+                            <th style="padding: 12px 16px;">FECHA EMISIÓN</th>
+                            <th style="padding: 12px 16px;">LLEGADA</th>
+                            <th style="padding: 12px 16px; text-align: right;">TOTAL (S/)</th>
+                            <th style="padding: 12px 16px; text-align: center;">ESTADO</th>
+                            <th style="padding: 12px 16px; text-align: center;">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compras-historial-tbody">
+                        <!-- Generado dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Controles de Paginación -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.86rem; color: #64748b;">
+                <span id="compras-paginacion-info">Página 1 de 1 (0 órdenes)</span>
+                <div style="display: flex; gap: 8px;">
+                    <button id="btn-compras-pag-prev" onclick="cambiarPaginaCompras(-1)" disabled style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                        <i class="ph ph-caret-left"></i> Anterior
+                    </button>
+                    <button id="btn-compras-pag-next" onclick="cambiarPaginaCompras(1)" disabled style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                        Siguiente <i class="ph ph-caret-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

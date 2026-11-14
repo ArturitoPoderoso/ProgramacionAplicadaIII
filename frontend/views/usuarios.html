@@ -1,0 +1,44 @@
+<div id="section-usuarios" class="app-section" style="display:none;">
+            <!-- Topbar -->
+            
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-area">
+                
+                <div class="actions-bar">
+                    <div class="action-buttons">
+                        <button class="btn-action" onclick="abrirModalCrear()">
+                            <i class="ph ph-user-plus"></i>
+                            Crear Usuario
+                        </button>
+                    </div>
+                    
+                    <div class="search-and-filter">
+                        <div class="search-box">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="search-input" placeholder="Buscar por usuario o ID">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>USUARIO</th>
+                                <th>ROL</th>
+                                <th>Local/Sede</th>
+                                <th>ULTIMO ACCESO</th>
+                                <th>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            <!-- Filas generadas dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+
+            </div>
+        </div>

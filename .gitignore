@@ -46,6 +46,11 @@ pyvenv.cfg
 *.swp
 *.swo
 
+# Database backups
+*.db
+*.sqlite
+*.sqlite3
+
 # OS
 Thumbs.db
 Desktop.ini

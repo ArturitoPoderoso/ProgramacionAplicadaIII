@@ -1,0 +1,58 @@
+<div class="modal-overlay" id="modal-ticket-venta">
+        <div class="modal-container" style="max-width: 580px; border-radius: 14px; overflow: hidden; padding: 0; background: #f8fafc;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 14px 20px;">
+                <h3 style="color: white; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-receipt"></i> Boleta de Venta Emitida
+                </h3>
+                <button class="modal-close" style="color: white; opacity: 0.9;" onclick="closeModal('modal-ticket-venta')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: 80vh;">
+                <!-- Recuadro Boleta Imprimible -->
+                <div id="boleta-printable" class="boleta-paper">
+                    <!-- Boleta dinámicamente generada -->
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 14px 20px; background: #ffffff; border-top: 1px solid #e2e8f0;">
+                <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; padding: 8px 16px;" onclick="imprimirBoleta()"><i class="ph ph-printer"></i> Imprimir Boleta</button>
+                <button class="btn-save" style="position:static; background: #F57C00; padding: 8px 20px;" onclick="closeModal('modal-ticket-venta')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+<div class="modal-overlay" id="modal-detalle-venta">
+        <div class="modal-container" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3>Comprobante de Venta</h3>
+                <button class="modal-close" onclick="closeModal('modal-detalle-venta')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" id="modal-detalle-venta-body" style="background: #fafafa; padding: 15px;">
+                <!-- Renderizado dinámico de la boleta -->
+            </div>
+            <div class="modal-footer" style="justify-content: space-between;">
+                <button class="btn-secondary" onclick="closeModal('modal-detalle-venta')">Cerrar</button>
+                <button class="btn-save" style="position:static; background: #2563eb;" onclick="imprimirTicketHistorial()">
+                    <i class="ph ph-printer"></i> Imprimir Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+
+<div class="modal-overlay" id="modal-proforma-printable">
+        <div class="modal-container" style="max-width: 620px; border-radius: 14px; overflow: hidden; padding: 0; background: #f8fafc;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 14px 20px;">
+                <h3 style="color: white; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-file-text" style="color: #38bdf8;"></i> Documento de Proforma / Cotización
+                </h3>
+                <button class="modal-close" style="color: white; opacity: 0.9;" onclick="closeModal('modal-proforma-printable')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: 80vh;">
+                <div id="proforma-document-content" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); font-family: 'Inter', sans-serif; color: #1e293b;">
+                    <!-- Generado dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 14px 20px; background: #ffffff; border-top: 1px solid #e2e8f0;">
+                <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; padding: 8px 16px;" onclick="imprimirDocumentoProforma()"><i class="ph ph-printer"></i> Imprimir Proforma</button>
+                <button class="btn-save" style="position:static; background: #475569; padding: 8px 20px;" onclick="closeModal('modal-proforma-printable')">Cerrar</button>
+            </div>
+        </div>
+    </div>

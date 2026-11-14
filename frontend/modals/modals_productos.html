@@ -1,0 +1,111 @@
+<div class="modal-overlay" id="modal-crear-producto">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Nuevo Producto</h3>
+                <button class="modal-close" onclick="closeModal('modal-crear-producto')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Código de Producto</label>
+                    <input type="text" id="new-prod-codigo" placeholder="Ej: PROD-001">
+                </div>
+                <div class="form-group">
+                    <label>Nombre del Producto</label>
+                    <input type="text" id="new-prod-nombre" placeholder="Ej: Martillo de Uña 16oz">
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input type="text" id="new-prod-desc" placeholder="Ej: Mango de madera con cabeza de acero">
+                </div>
+                <div class="form-group">
+                    <label>Categoría Principal</label>
+                    <select class="form-select" id="new-prod-categoria-padre" onchange="onCategoriaPadreChange()">
+                        <option value="">Seleccione Categoría...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subcategoría</label>
+                    <select class="form-select" id="new-prod-subcategoria">
+                        <option value="">Ninguna / General</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Precio Compra</label>
+                    <input type="number" id="new-prod-pcompra" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Precio Venta</label>
+                    <input type="number" id="new-prod-pventa" step="0.1" value="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Stock Inicial (Unidades)</label>
+                    <input type="number" id="new-prod-stock" value="10">
+                </div>
+                <div class="form-group">
+                    <label>Stock Mínimo (Alerta)</label>
+                    <input type="number" id="new-prod-minimo" value="5">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-crear-producto')">Cancelar</button>
+                <button class="btn-save" style="position:static" onclick="crearProducto()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+<div class="modal-overlay" id="modal-crear-categoria">
+        <div class="modal-container" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3 id="modal-crear-categoria-title">Nueva Categoría / Subcategoría</h3>
+                <button class="modal-close" onclick="closeModal('modal-crear-categoria')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="hidden" id="edit-cat-id">
+                <div class="form-group">
+                    <label>Nombre de Categoría <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="new-cat-nombre" placeholder="Ej: Herramientas Manuales">
+                </div>
+                <div class="form-group">
+                    <label>Categoría Padre (Opcional para Subcategoría)</label>
+                    <select class="form-select" id="new-cat-padre">
+                        <option value="">Ninguna (Categoría Principal)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input type="text" id="new-cat-desc" placeholder="Ej: Martillos, alicates, destornilladores">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-crear-categoria')">Cancelar</button>
+                <button class="btn-save" style="position:static; background: #f59e0b;" onclick="guardarCategoria()">Guardar Categoría</button>
+            </div>
+        </div>
+    </div>
+
+<div class="modal-overlay" id="modal-editar-precio" style="z-index: 100000; backdrop-filter: blur(4px); background: rgba(15, 23, 42, 0.65);">
+        <div class="modal-container" style="max-width: 430px; border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 14px 20px;">
+                <h3 style="color: white; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-bold ph-tag"></i> Actualizar Precio de Compra
+                </h3>
+                <button class="modal-close" style="color: white;" onclick="closeModal('modal-editar-precio')"><i class="ph ph-x"></i></button>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                <div id="modal-precio-producto-nombre" style="font-weight: 700; color: #1e293b; font-size: 0.95rem;"></div>
+                <div style="font-size: 0.8rem; color: #64748b; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px 12px; border-radius: 6px;">
+                    <i class="ph-bold ph-arrows-clockwise" style="color: #16a34a;"></i> Este cambio mantendrá sincronizado el catálogo del proveedor con el inventario de Almacén.
+                </div>
+                
+                <div class="form-group" style="margin-top: 4px;">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 4px; display: block;">Nuevo Precio de Compra Pactado (S/) *</label>
+                    <input type="number" id="modal-nuevo-precio-input" step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 700; color: #0284c7;">
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-editar-precio')">Cancelar</button>
+                <button type="button" id="modal-precio-btn-guardar" class="btn-save" style="position: static; background: #0284c7; padding: 8px 20px;">Guardar Precio</button>
+            </div>
+        </div>
+    </div>

@@ -1,0 +1,123 @@
+<div id="section-proformas" class="app-section" style="display:none;">
+    <div class="dashboard-area">
+
+        <!-- Grid Principal (2 Columnas) -->
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; margin-bottom: 30px;">
+            
+            <!-- Columna Izquierda: Catálogo y Búsqueda de Productos -->
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <i class="ph-fill ph-magnifying-glass" style="color: #2563eb;"></i> Buscar Productos
+                    </h3>
+                    <span style="font-size: 0.8rem; background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 20px; font-weight: 600;">
+                        Precios de Venta Vigentes
+                    </span>
+                </div>
+
+                <!-- Input Búsqueda -->
+                <div style="position: relative; margin-bottom: 16px;">
+                    <i class="ph ph-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem;"></i>
+                    <input type="text" id="proforma-search-prod" onkeyup="filtrarProductosProforma()" placeholder="Buscar por código o nombre de producto..." style="width: 100%; padding: 10px 14px 10px 42px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; outline: none;">
+                </div>
+
+                <!-- Lista de Productos -->
+                <div id="proforma-lista-productos" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                    <!-- Renderizado dinámico -->
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Detalle de Cotización / Carrito Proforma -->
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 16px;">
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin: 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+                    <i class="ph-fill ph-shopping-cart-simple" style="color: #16a34a;"></i> Resumen de Cotización
+                </h3>
+
+                <!-- Datos del Cliente & Validez -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Cliente / Empresa</label>
+                        <input type="text" id="proforma-cliente-nombre" placeholder="Ej: Constructora San Martín" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">DNI / RUC (Opcional)</label>
+                        <input type="text" id="proforma-cliente-doc" placeholder="Ej: 20601234567" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Validez de Oferta</label>
+                    <select id="proforma-validez" class="form-select" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border-radius: 6px;">
+                        <option value="3">3 Días</option>
+                        <option value="7" selected>7 Días (Recomendado)</option>
+                        <option value="15">15 Días</option>
+                        <option value="30">30 Días</option>
+                    </select>
+                </div>
+
+                <!-- Tabla Carrito Cotización -->
+                <div style="border: 1px solid #f1f5f9; border-radius: 8px; overflow: hidden; max-height: 220px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                        <thead style="background: #f8fafc; color: #64748b; font-weight: 600; text-align: left;">
+                            <tr>
+                                <th style="padding: 8px 10px;">PRODUCTO</th>
+                                <th style="padding: 8px 6px; text-align: center; width: 70px;">CANT.</th>
+                                <th style="padding: 8px 6px; text-align: right; width: 75px;">P.UNIT</th>
+                                <th style="padding: 8px 6px; text-align: right; width: 80px;">SUBTOTAL</th>
+                                <th style="padding: 8px 6px; text-align: center; width: 35px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="proforma-cart-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 25px; color: #94a3b8; font-style: italic;">
+                                    No hay productos en la cotización. Selecciona del panel izquierdo.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Total Recuadro -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.95rem; font-weight: 700; color: #334155;">TOTAL COTIZADO:</span>
+                    <span id="proforma-cart-total" style="font-size: 1.4rem; font-weight: 800; color: #16a34a;">S/ 0.00</span>
+                </div>
+
+                <!-- Botón Acción Principal -->
+                <button onclick="generarEImprimirProforma()" class="btn-save" style="position: static; width: 100%; background: linear-gradient(135deg, #16a34a, #15803d); color: white; font-weight: 700; padding: 12px; font-size: 0.95rem; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25); border: none; cursor: pointer; transition: all 0.2s;">
+                    <i class="ph-fill ph-printer" style="font-size: 1.2rem;"></i> Generar e Imprimir Proforma
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabla Historial de Proformas Emitidas -->
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="ph-fill ph-clock-counter-clockwise" style="color: #6366f1;"></i> Cotizaciones Emitidas Recientemente
+                </h3>
+                <input type="text" id="proformas-historial-search" onkeyup="cargarProformasEmitidas()" placeholder="Buscar cotización..." style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; width: 220px;">
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; font-size: 0.82rem; text-align: left;">
+                            <th>PROFORMA N°</th>
+                            <th>FECHA Y HORA</th>
+                            <th>CLIENTE</th>
+                            <th>VALIDEZ</th>
+                            <th>SEDE</th>
+                            <th>EMITIDO POR</th>
+                            <th>TOTAL (S/)</th>
+                            <th style="text-align: center;">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="proformas-historial-tbody">
+                        <!-- Carga dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

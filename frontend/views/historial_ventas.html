@@ -1,0 +1,83 @@
+<div id="section-historial-ventas" class="app-section" style="display:none;">
+    <div class="dashboard-area">
+        <!-- KPI Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div style="background: white; border-radius: 10px; padding: 18px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 15px;">
+                <div style="width: 48px; height: 48px; border-radius: 10px; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="ph-fill ph-currency-dollar"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.82rem; color: #6b7280; font-weight: 500;">TOTAL RECAUDADO</div>
+                    <div id="kpi-historial-monto" style="font-size: 1.35rem; font-weight: 700; color: #111827;">S/ 0.00</div>
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 10px; padding: 18px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 15px;">
+                <div style="width: 48px; height: 48px; border-radius: 10px; background: #f3e8ff; color: #a855f7; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="ph-fill ph-receipt"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.82rem; color: #6b7280; font-weight: 500;">N° COMPROBANTES</div>
+                    <div id="kpi-historial-comprobantes" style="font-size: 1.35rem; font-weight: 700; color: #111827;">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="actions-bar" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: white; padding: 15px; border-radius: 10px; border: 1px solid #e5e7eb;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <div class="search-box" style="min-width: 240px; margin: 0;">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" id="historial-search-input" placeholder="Buscar ticket o vendedor..." oninput="filtrarHistorialVentasLocal()">
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-size: 0.85rem; color: #6b7280; font-weight: 500;">Desde:</label>
+                    <input type="date" id="historial-fecha-inicio" class="form-select" style="padding: 6px 10px;" onchange="cargarHistorialVentas()">
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-size: 0.85rem; color: #6b7280; font-weight: 500;">Hasta:</label>
+                    <input type="date" id="historial-fecha-fin" class="form-select" style="padding: 6px 10px;" onchange="cargarHistorialVentas()">
+                </div>
+                <select id="historial-sede-select" class="form-select" style="padding: 6px 10px; min-width: 150px;" onchange="cargarHistorialVentas()">
+                    <option value="">Todas las Sedes</option>
+                </select>
+            </div>
+            <button class="btn-action" style="background: #f3f4f6; color: #374151; border-color: #d1d5db;" onclick="limpiarFiltrosHistorial()">
+                <i class="ph ph-arrow-counter-clockwise"></i> Limpiar Filtros
+            </button>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container" style="margin-top: 15px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>CORRELATIVO</th>
+                        <th>FECHA Y HORA</th>
+                        <th>EMPLEADO</th>
+                        <th>SEDE</th>
+                        <th>MÉTODO PAGO</th>
+                        <th>UNIDADES</th>
+                        <th>TOTAL (S/)</th>
+                        <th style="text-align: center;">ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody id="historial-ventas-tbody">
+                </tbody>
+            </table>
+
+            <!-- Controles de Paginación -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-top: 1px solid #e5e7eb; background: #f9fafb; font-size: 0.86rem; color: #6b7280;">
+                <span id="historial-paginacion-info">Página 1 de 1 (0 ventas)</span>
+                <div style="display: flex; gap: 8px;">
+                    <button id="btn-historial-pag-prev" onclick="cambiarPaginaHistorialVentas(-1)" disabled style="padding: 6px 12px; border-radius: 6px; border: 1px solid #d1d5db; background: white; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                        <i class="ph ph-caret-left"></i> Anterior
+                    </button>
+                    <button id="btn-historial-pag-next" onclick="cambiarPaginaHistorialVentas(1)" disabled style="padding: 6px 12px; border-radius: 6px; border: 1px solid #d1d5db; background: white; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                        Siguiente <i class="ph ph-caret-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
