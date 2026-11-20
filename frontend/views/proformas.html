@@ -35,13 +35,14 @@
 
                 <!-- Datos del Cliente & Validez -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <input type="hidden" id="proforma-cliente-id">
                     <div>
                         <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Cliente / Empresa</label>
                         <input type="text" id="proforma-cliente-nombre" placeholder="Ej: Constructora San Martín" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
                     </div>
                     <div>
                         <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">DNI / RUC (Opcional)</label>
-                        <input type="text" id="proforma-cliente-doc" placeholder="Ej: 20601234567" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                        <input type="text" id="proforma-cliente-doc" oninput="if(typeof autocompletarClienteProforma === 'function') autocompletarClienteProforma(this.value)" placeholder="Ej: 20601234567" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
                     </div>
                 </div>
 

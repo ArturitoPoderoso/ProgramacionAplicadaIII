@@ -15,7 +15,8 @@ from routes import (
     proformas_bp,
     promociones_bp,
     proveedores_bp,
-    compras_bp
+    compras_bp,
+    clientes_bp
 )
 
 # Creamos las tablas o columnas faltantes si no existen
@@ -24,6 +25,10 @@ try:
     with engine.connect() as conn:
         conn.execute(text("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS descuento_total DOUBLE PRECISION DEFAULT 0.0;"))
         conn.execute(text("ALTER TABLE detalle_ventas ADD COLUMN IF NOT EXISTS descuento_unitario DOUBLE PRECISION DEFAULT 0.0;"))
+        conn.execute(text("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS id_cliente INTEGER;"))
+        conn.execute(text("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cliente_nombre VARCHAR(150) DEFAULT 'Cliente General';"))
+        conn.execute(text("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cliente_doc VARCHAR(30) DEFAULT '';"))
+        conn.execute(text("ALTER TABLE proformas ADD COLUMN IF NOT EXISTS id_cliente INTEGER;"))
         conn.commit()
 except Exception as e:
     print(f"Error conectando o sincronizando BD: {e}")
@@ -78,6 +83,7 @@ app.register_blueprint(proformas_bp)
 app.register_blueprint(promociones_bp)
 app.register_blueprint(proveedores_bp)
 app.register_blueprint(compras_bp)
+app.register_blueprint(clientes_bp)
 
 # Servir los archivos estaticos del frontend
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))

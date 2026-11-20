@@ -85,13 +85,39 @@ def create_venta():
 
         total_venta = round(max(0.0, subtotal_acumulado), 2)
 
+        # Identificar o vincular cliente si se envio en la venta
+        id_cliente = data.get("id_cliente")
+        cliente_nombre = str(data.get("cliente_nombre") or data.get("cliente") or "Cliente General").strip()
+        cliente_doc = str(data.get("cliente_doc") or data.get("dni") or "").strip()
+
+        if cliente_doc and not id_cliente:
+            cli = db.query(models.Cliente).filter(models.Cliente.numero_documento == cliente_doc).first()
+            if cli:
+                id_cliente = cli.id_cliente
+                if not cliente_nombre or cliente_nombre == "Cliente General":
+                    cliente_nombre = cli.nombres_razon_social
+            elif cliente_nombre and cliente_nombre != "Cliente General":
+                tipo_doc = "RUC" if len(cliente_doc) == 11 else "DNI"
+                nuevo_cli = models.Cliente(
+                    tipo_documento=tipo_doc,
+                    numero_documento=cliente_doc,
+                    nombres_razon_social=cliente_nombre,
+                    estado_registro=1
+                )
+                db.add(nuevo_cli)
+                db.flush()
+                id_cliente = nuevo_cli.id_cliente
+
         nueva_venta = models.Venta(
             correlativo=correlativo,
             total=total_venta,
             descuento_total=round(descuento_total, 2),
             metodo_pago=data.get("metodo_pago", "Efectivo"),
             id_usuario=id_usuario,
-            id_sede=id_sede
+            id_sede=id_sede,
+            id_cliente=id_cliente,
+            cliente_nombre=cliente_nombre,
+            cliente_doc=cliente_doc
         )
         db.add(nueva_venta)
         db.flush() 
@@ -146,7 +172,10 @@ def create_venta():
             "sede_nombre": sede_nom,
             "sede_direccion": sede_dir,
             "sede_telefono": sede_tel,
-            "vendedor": vendedor_nom
+            "vendedor": vendedor_nom,
+            "id_cliente": id_cliente,
+            "cliente": cliente_nombre,
+            "dni": cliente_doc
         }
         return jsonify(res_data), 201
         
@@ -234,11 +263,15 @@ def get_ventas():
 
             sede_nom = s.nombre if s else "Sede Principal"
 
+            cli_nom = getattr(v, 'cliente_nombre', 'Cliente General') or 'Cliente General'
+            cli_doc = getattr(v, 'cliente_doc', '') or ''
+
             if search:
                 s_lower = search.lower().strip()
                 match_correlativo = s_lower in (v.correlativo or "").lower()
                 match_vendedor = s_lower in vendedor_nom.lower()
-                if not (match_correlativo or match_vendedor):
+                match_cliente = s_lower in cli_nom.lower() or s_lower in cli_doc.lower()
+                if not (match_correlativo or match_vendedor or match_cliente):
                     continue
 
             unidades_venta = sum([d.cantidad for d in v.detalles]) if v.detalles else 0
@@ -256,6 +289,9 @@ def get_ventas():
                 "metodo_pago": v.metodo_pago,
                 "unidades_totales": unidades_venta,
                 "vendedor": vendedor_nom,
+                "cliente": cli_nom,
+                "cliente_doc": cli_doc,
+                "id_cliente": getattr(v, 'id_cliente', None),
                 "sede": sede_nom,
                 "id_sede": v.id_sede,
                 "id_usuario": v.id_usuario
@@ -338,6 +374,9 @@ def get_detalle_venta(id_venta):
             "descuento_total": getattr(venta, 'descuento_total', 0.0) or 0.0,
             "metodo_pago": venta.metodo_pago,
             "vendedor": vendedor_nom,
+            "id_cliente": getattr(venta, 'id_cliente', None),
+            "cliente": getattr(venta, 'cliente_nombre', 'Cliente General') or 'Cliente General',
+            "cliente_doc": getattr(venta, 'cliente_doc', '') or '',
             "sede_nombre": sede_nom,
             "sede_direccion": sede_dir,
             "sede_telefono": sede_tel,

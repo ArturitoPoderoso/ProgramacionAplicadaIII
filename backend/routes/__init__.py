@@ -9,6 +9,7 @@ from .proformas import proformas_bp
 from .promociones import promociones_bp
 from .proveedores import proveedores_bp
 from .compras import compras_bp
+from .clientes import clientes_bp
 
 __all__ = [
     "auth_bp",
@@ -18,6 +19,7 @@ __all__ = [
     "proformas_bp",
     "promociones_bp",
     "proveedores_bp",
-    "compras_bp"
+    "compras_bp",
+    "clientes_bp"
 ]
 

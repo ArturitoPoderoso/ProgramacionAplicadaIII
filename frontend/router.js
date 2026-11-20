@@ -113,6 +113,13 @@ const ViewRouter = {
                 if (typeof cargarProveedores === 'function') cargarProveedores();
             }
         },
+        'section-clientes': {
+            file: 'views/clientes.html',
+            title: 'GESTIÓN DE CLIENTES',
+            init: () => {
+                if (typeof cargarClientes === 'function') cargarClientes();
+            }
+        },
         'section-emitir-orden': {
             file: 'views/compras_emitir.html',
             title: 'EMITIR ORDEN',
@@ -141,6 +148,7 @@ const ViewRouter = {
             'modals/modals_ventas.html',
             'modals/modals_promociones.html',
             'modals/modals_proveedores.html',
+            'modals/modals_clientes.html',
             'modals/modals_compras.html'
         ];
 

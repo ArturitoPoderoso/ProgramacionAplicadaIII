@@ -188,12 +188,15 @@ async function generarEImprimirProforma() {
 
     const clienteNombre = document.getElementById('proforma-cliente-nombre').value.trim() || 'Cliente General';
     const clienteDoc = document.getElementById('proforma-cliente-doc').value.trim();
+    const clienteIdInput = document.getElementById('proforma-cliente-id');
+    const idClienteVal = clienteIdInput && clienteIdInput.value ? parseInt(clienteIdInput.value) : null;
     const validezDias = parseInt(document.getElementById('proforma-validez').value) || 7;
 
     const payload = {
         id_usuario: user.id,
         id_sede: user.id_sede || 1,
         rol: user.activeRole || user.role || 'Vendedor',
+        id_cliente: idClienteVal,
         cliente_nombre: clienteNombre,
         cliente_doc: clienteDoc,
         validez_dias: validezDias,
@@ -218,6 +221,7 @@ async function generarEImprimirProforma() {
             renderCartProforma();
             document.getElementById('proforma-cliente-nombre').value = '';
             document.getElementById('proforma-cliente-doc').value = '';
+            if (clienteIdInput) clienteIdInput.value = '';
 
             await cargarProformasEmitidas();
             verDetalleProforma(data.id_proforma);
@@ -401,3 +405,30 @@ function imprimirDocumentoProforma() {
     `);
     printWindow.document.close();
 }
+
+// Autocompleta los datos del cliente en proformas al ingresar DNI o RUC
+async function autocompletarClienteProforma(doc) {
+    const val = String(doc || '').trim();
+    const idInput = document.getElementById('proforma-cliente-id');
+    if (idInput && val.length < 8) idInput.value = '';
+
+    if (val.length === 8 || val.length === 11) {
+        try {
+            const baseUrl = window.API_BASE_URL || 'http://localhost:8000/api';
+            const res = await fetch(`${baseUrl}/clientes/buscar/${val}`);
+            if (res.ok) {
+                const cliente = await res.json();
+                const nomInput = document.getElementById('proforma-cliente-nombre');
+                if (nomInput && cliente.nombres_razon_social) {
+                    nomInput.value = cliente.nombres_razon_social;
+                }
+                if (idInput) {
+                    idInput.value = cliente.id_cliente;
+                }
+            }
+        } catch (e) {
+            // Silencioso si no se encuentra
+        }
+    }
+}
+window.autocompletarClienteProforma = autocompletarClienteProforma;

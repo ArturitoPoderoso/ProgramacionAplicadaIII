@@ -433,9 +433,15 @@ const CajaModule = {
             }
         }
 
+        const clienteIdInput = document.getElementById('pos-cliente-id');
+        const idClienteVal = clienteIdInput && clienteIdInput.value ? parseInt(clienteIdInput.value) : null;
+
         const payload = {
             metodo_pago: metodoPago,
             id_usuario: user.id,
+            id_cliente: idClienteVal,
+            cliente_nombre: clienteNombre,
+            cliente_doc: clienteDoc,
             descuento_total: this.round2(descuentoTotal),
             detalles: this.carrito.map(item => {
                 const propGlobalItem = subtotalBruto > 0 ? (descuentoTotal * (item.cantidad * item.precio_unitario) / subtotalBruto) : 0;
@@ -483,6 +489,7 @@ const CajaModule = {
                 this.carrito = [];
                 if (clienteNomInput) clienteNomInput.value = '';
                 if (clienteDocInput) clienteDocInput.value = '';
+                if (clienteIdInput) clienteIdInput.value = '';
                 if (inputDesc) inputDesc.value = '';
                 this.cancelarDescuentoSupervisor();
                 this.renderCarrito();
@@ -710,6 +717,39 @@ const CajaModule = {
         }
     }
 };
+
+// Autocompleta el nombre del cliente en caja al ingresar DNI o RUC
+async function autocompletarClienteCaja(doc) {
+    const val = String(doc || '').trim();
+    const idInput = document.getElementById('pos-cliente-id');
+    if (idInput && val.length < 8) idInput.value = '';
+
+    if (val.length === 8 || val.length === 11) {
+        try {
+            const loadingEl = document.getElementById('pos-cliente-loading');
+            if (loadingEl) loadingEl.style.display = 'inline';
+            const baseUrl = window.API_BASE_URL || 'http://localhost:8000/api';
+            const res = await fetch(`${baseUrl}/clientes/buscar/${val}`);
+            if (res.ok) {
+                const cliente = await res.json();
+                const nomInput = document.getElementById('pos-cliente-nombre');
+                if (nomInput && cliente.nombres_razon_social) {
+                    nomInput.value = cliente.nombres_razon_social;
+                }
+                if (idInput) {
+                    idInput.value = cliente.id_cliente;
+                }
+                if (window.Toast) Toast.info(`Cliente encontrado: ${cliente.nombres_razon_social}`);
+            }
+        } catch (e) {
+            // No interrumpe si el cliente no existe todavia
+        } finally {
+            const loadingEl = document.getElementById('pos-cliente-loading');
+            if (loadingEl) loadingEl.style.display = 'none';
+        }
+    }
+}
+window.autocompletarClienteCaja = autocompletarClienteCaja;
 
 // Exportamos las funciones al objeto window para que funcionen con los onclick del HTML
 window.CajaModule = CajaModule;

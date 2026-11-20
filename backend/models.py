@@ -125,6 +125,23 @@ class MovimientoAlmacen(Base):
     usuario = relationship("User") 
     sede = relationship("Sede")
 
+# Modelos de clientes del negocio
+
+class Cliente(Base):
+    __tablename__ = "clientes"
+    id_cliente = Column(Integer, primary_key=True, index=True)
+    tipo_documento = Column(String(20), default="DNI") # DNI, RUC, CE
+    numero_documento = Column(String(20), unique=True, index=True, nullable=False)
+    nombres_razon_social = Column(String(150), nullable=False)
+    telefono = Column(String(30), default="")
+    correo = Column(String(120), default="")
+    direccion = Column(String(250), default="")
+    estado_registro = Column(Integer, default=1)
+    fecha_registro = Column(DateTime(timezone=True), server_default=func.now())
+
+    ventas = relationship("Venta", back_populates="cliente")
+    proformas = relationship("Proforma", back_populates="cliente")
+
 # Modelos de ventas y detalle de comprobantes
 
 class Venta(Base):
@@ -137,10 +154,14 @@ class Venta(Base):
     metodo_pago = Column(String, nullable=False) # Efectivo, Tarjeta, Yape
     id_usuario = Column(Integer, ForeignKey('usuarios.id_usuario'), index=True)
     id_sede = Column(Integer, ForeignKey('sedes.id_sede'), index=True)
+    id_cliente = Column(Integer, ForeignKey('clientes.id_cliente', ondelete="SET NULL"), nullable=True)
+    cliente_nombre = Column(String(150), default="Cliente General")
+    cliente_doc = Column(String(30), default="")
     estado_registro = Column(Integer, default=1)
 
     usuario = relationship("User")
     sede = relationship("Sede")
+    cliente = relationship("Cliente", back_populates="ventas")
     detalles = relationship("DetalleVenta", back_populates="venta")
 
 class DetalleVenta(Base):
@@ -164,6 +185,7 @@ class Proforma(Base):
     correlativo = Column(String, unique=True, index=True, nullable=False)
     fecha_emision = Column(DateTime(timezone=True), server_default=func.now())
     validez_dias = Column(Integer, default=7)
+    id_cliente = Column(Integer, ForeignKey('clientes.id_cliente', ondelete="SET NULL"), nullable=True)
     cliente_nombre = Column(String, default="Cliente General")
     cliente_doc = Column(String, default="")
     total = Column(Float, nullable=False)
@@ -173,6 +195,7 @@ class Proforma(Base):
 
     usuario = relationship("User")
     sede = relationship("Sede")
+    cliente = relationship("Cliente", back_populates="proformas")
     detalles = relationship("DetalleProforma", back_populates="proforma")
 
 class DetalleProforma(Base):

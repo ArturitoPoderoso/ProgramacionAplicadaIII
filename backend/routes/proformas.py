@@ -38,10 +38,31 @@ def registrar_proforma():
             sub = float(item["cantidad"]) * float(item["precio_unitario"])
             total_proforma += sub
 
+        # Identificar o registrar cliente si se envio en la cotizacion
+        id_cliente = data.get("id_cliente")
+        if cliente_doc and not id_cliente:
+            cli = db.query(models.Cliente).filter(models.Cliente.numero_documento == cliente_doc).first()
+            if cli:
+                id_cliente = cli.id_cliente
+                if not cliente_nombre or cliente_nombre == "Cliente General":
+                    cliente_nombre = cli.nombres_razon_social
+            elif cliente_nombre and cliente_nombre != "Cliente General":
+                tipo_doc = "RUC" if len(cliente_doc) == 11 else "DNI"
+                nuevo_cli = models.Cliente(
+                    tipo_documento=tipo_doc,
+                    numero_documento=cliente_doc,
+                    nombres_razon_social=cliente_nombre,
+                    estado_registro=1
+                )
+                db.add(nuevo_cli)
+                db.flush()
+                id_cliente = nuevo_cli.id_cliente
+
         nueva_proforma = models.Proforma(
             correlativo=correlativo,
             cliente_nombre=cliente_nombre,
             cliente_doc=cliente_doc,
+            id_cliente=id_cliente,
             validez_dias=validez_dias,
             total=round(total_proforma, 2),
             id_usuario=id_usuario,
@@ -121,6 +142,7 @@ def get_proformas():
                 "correlativo": p.correlativo,
                 "fecha_emision": p.fecha_emision.strftime("%d/%m/%Y %H:%M") if p.fecha_emision else "N/A",
                 "validez_dias": p.validez_dias,
+                "id_cliente": getattr(p, 'id_cliente', None),
                 "cliente_nombre": p.cliente_nombre,
                 "cliente_doc": p.cliente_doc,
                 "total": p.total,
@@ -172,6 +194,7 @@ def get_detalle_proforma(id_proforma):
             "correlativo": prof.correlativo,
             "fecha_emision": prof.fecha_emision.strftime("%d/%m/%Y %H:%M") if prof.fecha_emision else "N/A",
             "validez_dias": prof.validez_dias,
+            "id_cliente": getattr(prof, 'id_cliente', None),
             "cliente_nombre": prof.cliente_nombre,
             "cliente_doc": prof.cliente_doc,
             "total": prof.total,

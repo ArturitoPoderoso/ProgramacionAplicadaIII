@@ -13,6 +13,7 @@ Sistema Jesmi/
 │   │   ├── __init__.py
 │   │   ├── almacen.py
 │   │   ├── auth.py
+│   │   ├── clientes.py
 │   │   ├── compras.py
 │   │   ├── proformas.py
 │   │   ├── promociones.py
@@ -29,6 +30,7 @@ Sistema Jesmi/
 │   ├── assets/
 │   │   └── Jessmi.jpg
 │   ├── modals/
+│   │   ├── modals_clientes.html
 │   │   ├── modals_compras.html
 │   │   ├── modals_productos.html
 │   │   ├── modals_promociones.html
@@ -38,6 +40,7 @@ Sistema Jesmi/
 │   ├── views/
 │   │   ├── almacen.html
 │   │   ├── caja.html
+│   │   ├── clientes.html
 │   │   ├── compras_emitir.html
 │   │   ├── compras_historial.html
 │   │   ├── historial_ventas.html
@@ -49,6 +52,7 @@ Sistema Jesmi/
 │   ├── almacen.js
 │   ├── app.js
 │   ├── caja.js
+│   ├── clientes.js
 │   ├── compras.js
 │   ├── config.js
 │   ├── dashboard.css
@@ -108,6 +112,7 @@ Agrupa los controladores modulares (Blueprints) que atienden las solicitudes de 
 | **`ventas.py`** | Emisión de ventas en caja, descuento automático de inventario e historial de comprobantes. |
 | **`compras.py`** | Emisión de órdenes de compra, recepción de mercadería al almacén y anulación de órdenes. |
 | **`proveedores.py`** | Registro de proveedores, validación de RUC/celular y catálogo de precios pactados. |
+| **`clientes.py`** | Gestión de clientes, búsqueda rápida por documento (DNI/RUC) y cartera de contactos. |
 | **`proformas.py`** | Registro y consulta de cotizaciones/proformas para clientes emitidas por vendedores. |
 | **`promociones.py`** | Creación de campañas de descuento por producto o sede, y autorización de supervisor en caja. |
 
@@ -133,6 +138,7 @@ Contiene la interfaz de usuario moderna diseñada bajo una arquitectura SPA (Sin
 | **`historial_ventas.js`** | Consulta de ventas pasadas, filtros por fecha/sede/vendedor y reimpresión de comprobantes. |
 | **`compras.js`** | Emisión de órdenes de compra a proveedores, historial de órdenes y recepción de mercadería al almacén. |
 | **`proveedores.js`** | Mantenimiento de proveedores, validaciones peruanas (RUC de 11 dígitos, celular de 9) y precios pactados. |
+| **`clientes.js`** | Mantenimiento y búsqueda de clientes, validaciones de DNI/RUC y filtro en tiempo real. |
 | **`proformas.js`** | Emisión de cotizaciones para clientes y descarga o impresión en formato proforma. |
 | **`promociones.js`** | Creación y administración de promociones temporales, descuentos por porcentaje y montos fijos. |
 | **`vercel.json`** | Configuración de enrutamiento y encabezados para despliegue estático en Vercel. |
@@ -149,6 +155,7 @@ Vistas HTML modulares que el enrutador (`router.js`) inserta dinámicamente dent
 | **`historial_ventas.html`** | Pantalla de auditoría de ventas con tarjetas de totales y tabla filtrable. |
 | **`usuarios.html`** | Pantalla de administración de cuentas de usuario, roles y sedes asignadas. |
 | **`proveedores.html`** | Pantalla del directorio de proveedores y catálogo de productos asociados. |
+| **`clientes.html`** | Pantalla del directorio de clientes, tarjetas estadísticas y cartera de contactos. |
 | **`proformas.html`** | Pantalla de emisión y consulta de cotizaciones para clientes. |
 | **`promociones.html`** | Pantalla de creación de descuentos comerciales y campañas vigentes. |
 | **`perfil.html`** | Pantalla de información personal del usuario logueado y cambio de contraseña. |
@@ -162,6 +169,7 @@ Ventanas emergentes (modales) reutilizables que se cargan en segundo plano una s
 | **`modals_productos.html`** | Modales para crear/editar productos, categorías y subcategorías. |
 | **`modals_compras.html`** | Modales para ver el detalle de una compra, recibir mercadería y anular orden. |
 | **`modals_proveedores.html`** | Modales para registrar proveedor y asociar productos con precios de compra pactados. |
+| **`modals_clientes.html`** | Modal para registrar y editar información de clientes con validación de documento. |
 | **`modals_promociones.html`** | Modal para crear nuevas promociones temporales. |
 | **`modals_usuarios.html`** | Modal para crear y editar cuentas de empleados y asignar perfiles. |
 
@@ -169,3 +177,4 @@ Ventanas emergentes (modales) reutilizables que se cargan en segundo plano una s
 | Archivo | Descripción |
 | :--- | :--- |
 | **`Jessmi.jpg`** | Logotipo oficial de la empresa ferretera Sistema Jesmi utilizado en el login y en las boletas. |
+
