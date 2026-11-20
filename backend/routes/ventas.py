@@ -89,6 +89,7 @@ def create_venta():
         id_cliente = data.get("id_cliente")
         cliente_nombre = str(data.get("cliente_nombre") or data.get("cliente") or "Cliente General").strip()
         cliente_doc = str(data.get("cliente_doc") or data.get("dni") or "").strip()
+        cliente_tel = str(data.get("cliente_telefono") or data.get("telefono") or "").strip()
 
         if cliente_doc and not id_cliente:
             cli = db.query(models.Cliente).filter(models.Cliente.numero_documento == cliente_doc).first()
@@ -96,12 +97,15 @@ def create_venta():
                 id_cliente = cli.id_cliente
                 if not cliente_nombre or cliente_nombre == "Cliente General":
                     cliente_nombre = cli.nombres_razon_social
+                if cliente_tel and not cli.telefono:
+                    cli.telefono = cliente_tel
             elif cliente_nombre and cliente_nombre != "Cliente General":
                 tipo_doc = "RUC" if len(cliente_doc) == 11 else "DNI"
                 nuevo_cli = models.Cliente(
                     tipo_documento=tipo_doc,
                     numero_documento=cliente_doc,
                     nombres_razon_social=cliente_nombre,
+                    telefono=cliente_tel,
                     estado_registro=1
                 )
                 db.add(nuevo_cli)
@@ -175,6 +179,7 @@ def create_venta():
             "vendedor": vendedor_nom,
             "id_cliente": id_cliente,
             "cliente": cliente_nombre,
+            "cliente_doc": cliente_doc,
             "dni": cliente_doc
         }
         return jsonify(res_data), 201
@@ -377,6 +382,7 @@ def get_detalle_venta(id_venta):
             "id_cliente": getattr(venta, 'id_cliente', None),
             "cliente": getattr(venta, 'cliente_nombre', 'Cliente General') or 'Cliente General',
             "cliente_doc": getattr(venta, 'cliente_doc', '') or '',
+            "dni": getattr(venta, 'cliente_doc', '') or '',
             "sede_nombre": sede_nom,
             "sede_direccion": sede_dir,
             "sede_telefono": sede_tel,

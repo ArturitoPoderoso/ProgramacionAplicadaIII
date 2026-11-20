@@ -37,13 +37,19 @@
                                     <input type="text" id="pos-cliente-doc" oninput="if(typeof autocompletarClienteCaja === 'function') autocompletarClienteCaja(this.value)" placeholder="DNI o RUC" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;" maxlength="11" required>
                                 </div>
                             </div>
-                            <div class="form-group" style="margin-bottom: 8px;">
-                                <label style="font-size: 0.76rem; font-weight: 700;">Método de Pago</label>
-                                <select class="form-select" id="metodo-pago" style="padding: 6px 8px; font-size: 0.85rem; border-radius: 6px;">
-                                    <option value="Efectivo">Efectivo</option>
-                                    <option value="Tarjeta">Tarjeta (POS)</option>
-                                    <option value="Yape/Plin">Yape / Plin</option>
-                                </select>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.76rem; font-weight: 700;">Teléfono (Opcional)</label>
+                                    <input type="text" id="pos-cliente-telefono" placeholder="Ej: 987654321" maxlength="12" style="padding: 6px 8px; font-size: 0.82rem; border-radius: 6px;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.76rem; font-weight: 700;">Método de Pago</label>
+                                    <select class="form-select" id="metodo-pago" style="padding: 6px 8px; font-size: 0.85rem; border-radius: 6px;">
+                                        <option value="Efectivo">Efectivo</option>
+                                        <option value="Tarjeta">Tarjeta (POS)</option>
+                                        <option value="Yape/Plin">Yape / Plin</option>
+                                    </select>
+                                </div>
                             </div>
 
 

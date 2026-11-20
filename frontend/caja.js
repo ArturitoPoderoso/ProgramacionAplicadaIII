@@ -435,6 +435,8 @@ const CajaModule = {
 
         const clienteIdInput = document.getElementById('pos-cliente-id');
         const idClienteVal = clienteIdInput && clienteIdInput.value ? parseInt(clienteIdInput.value) : null;
+        const clienteTelInput = document.getElementById('pos-cliente-telefono');
+        const clienteTel = clienteTelInput ? clienteTelInput.value.trim() : '';
 
         const payload = {
             metodo_pago: metodoPago,
@@ -442,6 +444,7 @@ const CajaModule = {
             id_cliente: idClienteVal,
             cliente_nombre: clienteNombre,
             cliente_doc: clienteDoc,
+            cliente_telefono: clienteTel,
             descuento_total: this.round2(descuentoTotal),
             detalles: this.carrito.map(item => {
                 const propGlobalItem = subtotalBruto > 0 ? (descuentoTotal * (item.cantidad * item.precio_unitario) / subtotalBruto) : 0;
@@ -489,6 +492,7 @@ const CajaModule = {
                 this.carrito = [];
                 if (clienteNomInput) clienteNomInput.value = '';
                 if (clienteDocInput) clienteDocInput.value = '';
+                if (clienteTelInput) clienteTelInput.value = '';
                 if (clienteIdInput) clienteIdInput.value = '';
                 if (inputDesc) inputDesc.value = '';
                 this.cancelarDescuentoSupervisor();
@@ -736,6 +740,10 @@ async function autocompletarClienteCaja(doc) {
                 const nomInput = document.getElementById('pos-cliente-nombre');
                 if (nomInput && cliente.nombres_razon_social) {
                     nomInput.value = cliente.nombres_razon_social;
+                }
+                const telInput = document.getElementById('pos-cliente-telefono');
+                if (telInput && cliente.telefono) {
+                    telInput.value = cliente.telefono;
                 }
                 if (idInput) {
                     idInput.value = cliente.id_cliente;

@@ -26,7 +26,7 @@ function renderizarTablaClientes(clientes) {
     if (!clientes || clientes.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                <td colspan="3" style="text-align: center; padding: 40px; color: #94a3b8;">
                     <i class="ph-fill ph-users" style="font-size: 2.2rem; display: block; margin-bottom: 8px;"></i>
                     No se encontraron clientes registrados.
                 </td>
@@ -51,22 +51,6 @@ function renderizarTablaClientes(clientes) {
                 </td>
                 <td style="padding: 14px 16px; color: #475569; font-size: 0.88rem;">
                     ${c.telefono ? `<i class="ph ph-phone" style="color: #64748b; margin-right: 4px;"></i>${c.telefono}` : '<span style="color:#cbd5e1;">---</span>'}
-                </td>
-                <td style="padding: 14px 16px; color: #475569; font-size: 0.88rem;">
-                    ${c.correo ? `<i class="ph ph-envelope" style="color: #64748b; margin-right: 4px;"></i>${c.correo}` : '<span style="color:#cbd5e1;">---</span>'}
-                </td>
-                <td style="padding: 14px 16px; color: #64748b; font-size: 0.85rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    ${c.direccion || '<span style="color:#cbd5e1;">---</span>'}
-                </td>
-                <td style="padding: 14px 16px; text-align: center;">
-                    <div style="display: inline-flex; gap: 6px;">
-                        <button onclick="abrirModalEditarCliente(${c.id_cliente})" title="Editar Cliente" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #0284c7; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                            <i class="ph-bold ph-pencil-simple"></i>
-                        </button>
-                        <button onclick="eliminarCliente(${c.id_cliente}, '${c.nombres_razon_social.replace(/'/g, "\\'")}')" title="Eliminar Cliente" style="background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                            <i class="ph-bold ph-trash"></i>
-                        </button>
-                    </div>
                 </td>
             </tr>
         `;
@@ -155,8 +139,6 @@ function abrirModalEditarCliente(idCliente) {
     document.getElementById('cli-numero-doc').value = cliente.numero_documento || '';
     document.getElementById('cli-nombre').value = cliente.nombres_razon_social || '';
     document.getElementById('cli-telefono').value = cliente.telefono || '';
-    document.getElementById('cli-correo').value = cliente.correo || '';
-    document.getElementById('cli-direccion').value = cliente.direccion || '';
     onCambioTipoDocumentoCliente();
 
     if (typeof openModal === 'function') {
@@ -174,8 +156,6 @@ async function guardarCliente() {
     const numDoc = document.getElementById('cli-numero-doc').value.trim();
     const nombre = document.getElementById('cli-nombre').value.trim();
     const telefono = document.getElementById('cli-telefono').value.trim();
-    const correo = document.getElementById('cli-correo').value.trim();
-    const direccion = document.getElementById('cli-direccion').value.trim();
 
     if (!numDoc) {
         if (window.Toast) Toast.error('El número de documento es obligatorio.');
@@ -201,9 +181,7 @@ async function guardarCliente() {
         tipo_documento: tipoDoc,
         numero_documento: numDoc,
         nombres_razon_social: nombre,
-        telefono: telefono,
-        correo: correo,
-        direccion: direccion
+        telefono: telefono
     };
 
     const baseUrl = window.API_BASE_URL || 'http://localhost:8000/api';

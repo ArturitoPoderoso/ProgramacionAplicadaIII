@@ -225,7 +225,7 @@ const HistorialVentasModule = {
                 correlativo: data.correlativo,
                 fecha: data.fecha,
                 cliente: data.cliente || 'Público General',
-                dni: data.dni || '----------------',
+                dni: data.dni || data.cliente_doc || '----------------',
                 vendedor: data.vendedor,
                 sede_nombre: data.sede_nombre,
                 sede_direccion: data.sede_direccion,
