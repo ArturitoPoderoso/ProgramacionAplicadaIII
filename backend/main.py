@@ -29,6 +29,8 @@ try:
         conn.execute(text("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cliente_nombre VARCHAR(150) DEFAULT 'Cliente General';"))
         conn.execute(text("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cliente_doc VARCHAR(30) DEFAULT '';"))
         conn.execute(text("ALTER TABLE proformas ADD COLUMN IF NOT EXISTS id_cliente INTEGER;"))
+        conn.execute(text("ALTER TABLE clientes DROP COLUMN IF EXISTS correo;"))
+        conn.execute(text("ALTER TABLE clientes DROP COLUMN IF EXISTS direccion;"))
         conn.commit()
 except Exception as e:
     print(f"Error conectando o sincronizando BD: {e}")
@@ -85,25 +87,27 @@ app.register_blueprint(proveedores_bp)
 app.register_blueprint(compras_bp)
 app.register_blueprint(clientes_bp)
 
-# Servir los archivos estaticos del frontend
+# Servir los archivos estaticos del frontend solo en desarrollo local si existe la carpeta
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
 
 @app.route("/")
 def read_root():
-    index_file = os.path.join(FRONTEND_DIR, "index.html")
-    if os.path.exists(index_file):
-        return send_from_directory(FRONTEND_DIR, "index.html")
     return jsonify({
         "message": "Bienvenido a la API del Sistema Jesmi",
         "status": "online",
-        "version": "2.0.0"
+        "version": "2.0.0",
+        "api_docs": {
+            "clientes": "/api/clientes",
+            "buscar_cliente": "/api/clientes/buscar/<doc>"
+        }
     })
 
 @app.route("/<path:path>")
-def serve_frontend(path):
-    file_path = os.path.join(FRONTEND_DIR, path)
-    if os.path.exists(file_path):
-        return send_from_directory(FRONTEND_DIR, path)
+def serve_fallback(path):
+    if not path.startswith("api/"):
+        file_path = os.path.join(FRONTEND_DIR, path)
+        if os.path.exists(file_path):
+            return send_from_directory(FRONTEND_DIR, path)
     return jsonify({"error": "Recurso no encontrado"}), 404
 
 # Iniciar servidor con Waitress en el puerto 8000

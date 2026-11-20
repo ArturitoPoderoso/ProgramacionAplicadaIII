@@ -132,7 +132,7 @@ class Cliente(Base):
     id_cliente = Column(Integer, primary_key=True, index=True)
     tipo_documento = Column(String(20), default="DNI") # DNI, RUC, CE
     numero_documento = Column(String(20), unique=True, index=True, nullable=False)
-    nombre = Column("nombres_razon_social", String(150), nullable=False)
+    nombre = Column("nombre", String(150), nullable=False)
     telefono = Column(String(30), default="")
     estado_registro = Column(Integer, default=1)
     fecha_registro = Column(DateTime(timezone=True), server_default=func.now())
