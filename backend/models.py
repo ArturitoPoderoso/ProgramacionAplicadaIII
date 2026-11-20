@@ -132,12 +132,19 @@ class Cliente(Base):
     id_cliente = Column(Integer, primary_key=True, index=True)
     tipo_documento = Column(String(20), default="DNI") # DNI, RUC, CE
     numero_documento = Column(String(20), unique=True, index=True, nullable=False)
-    nombres_razon_social = Column(String(150), nullable=False)
+    nombre = Column("nombres_razon_social", String(150), nullable=False)
     telefono = Column(String(30), default="")
-    correo = Column(String(120), default="")
-    direccion = Column(String(250), default="")
     estado_registro = Column(Integer, default=1)
     fecha_registro = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Propiedad para mantener compatibilidad con nombres_razon_social
+    @property
+    def nombres_razon_social(self):
+        return self.nombre
+
+    @nombres_razon_social.setter
+    def nombres_razon_social(self, value):
+        self.nombre = value
 
     ventas = relationship("Venta", back_populates="cliente")
     proformas = relationship("Proforma", back_populates="cliente")

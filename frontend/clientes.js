@@ -47,7 +47,7 @@ function renderizarTablaClientes(clientes) {
                     <span style="font-family: monospace; font-weight: 700; color: #0f172a;">${c.numero_documento}</span>
                 </td>
                 <td style="padding: 14px 16px; font-weight: 600; color: #1e293b;">
-                    ${c.nombres_razon_social}
+                    ${c.nombre || c.nombres_razon_social}
                 </td>
                 <td style="padding: 14px 16px; color: #475569; font-size: 0.88rem;">
                     ${c.telefono ? `<i class="ph ph-phone" style="color: #64748b; margin-right: 4px;"></i>${c.telefono}` : '<span style="color:#cbd5e1;">---</span>'}
@@ -80,11 +80,10 @@ function filtrarClientes() {
     }
 
     const filtrados = listaClientesCache.filter(c => {
+        const nom = (c.nombre || c.nombres_razon_social || '').toLowerCase();
         return (c.numero_documento && c.numero_documento.toLowerCase().includes(term)) ||
-               (c.nombres_razon_social && c.nombres_razon_social.toLowerCase().includes(term)) ||
-               (c.telefono && c.telefono.toLowerCase().includes(term)) ||
-               (c.correo && c.correo.toLowerCase().includes(term)) ||
-               (c.direccion && c.direccion.toLowerCase().includes(term));
+               nom.includes(term) ||
+               (c.telefono && c.telefono.toLowerCase().includes(term));
     });
 
     renderizarTablaClientes(filtrados);
@@ -137,7 +136,7 @@ function abrirModalEditarCliente(idCliente) {
     document.getElementById('modal-cliente-title').innerHTML = '<i class="ph-fill ph-pencil-simple"></i> Editar Información del Cliente';
     document.getElementById('cli-tipo-doc').value = cliente.tipo_documento || 'DNI';
     document.getElementById('cli-numero-doc').value = cliente.numero_documento || '';
-    document.getElementById('cli-nombre').value = cliente.nombres_razon_social || '';
+    document.getElementById('cli-nombre').value = cliente.nombre || cliente.nombres_razon_social || '';
     document.getElementById('cli-telefono').value = cliente.telefono || '';
     onCambioTipoDocumentoCliente();
 
@@ -180,6 +179,7 @@ async function guardarCliente() {
     const payload = {
         tipo_documento: tipoDoc,
         numero_documento: numDoc,
+        nombre: nombre,
         nombres_razon_social: nombre,
         telefono: telefono
     };

@@ -19,9 +19,8 @@ def get_clientes():
         if search:
             query = query.filter(
                 (models.Cliente.numero_documento.ilike(f"%{search}%")) |
-                (models.Cliente.nombres_razon_social.ilike(f"%{search}%")) |
-                (models.Cliente.telefono.ilike(f"%{search}%")) |
-                (models.Cliente.correo.ilike(f"%{search}%"))
+                (models.Cliente.nombre.ilike(f"%{search}%")) |
+                (models.Cliente.telefono.ilike(f"%{search}%"))
             )
 
         query = query.order_by(models.Cliente.id_cliente.desc())
@@ -41,10 +40,9 @@ def get_clientes():
                 "id_cliente": c.id_cliente,
                 "tipo_documento": c.tipo_documento or "DNI",
                 "numero_documento": c.numero_documento,
-                "nombres_razon_social": c.nombres_razon_social,
+                "nombre": c.nombre,
+                "nombres_razon_social": c.nombre,
                 "telefono": c.telefono or "",
-                "correo": c.correo or "",
-                "direccion": c.direccion or "",
                 "fecha_registro": c.fecha_registro.strftime("%Y-%m-%d %H:%M") if c.fecha_registro else ""
             })
 
@@ -81,10 +79,9 @@ def buscar_cliente_por_doc(doc):
             "id_cliente": cliente.id_cliente,
             "tipo_documento": cliente.tipo_documento or "DNI",
             "numero_documento": cliente.numero_documento,
-            "nombres_razon_social": cliente.nombres_razon_social,
-            "telefono": cliente.telefono or "",
-            "correo": cliente.correo or "",
-            "direccion": cliente.direccion or ""
+            "nombre": cliente.nombre,
+            "nombres_razon_social": cliente.nombre,
+            "telefono": cliente.telefono or ""
         }), 200
 
     except Exception as e:
@@ -108,10 +105,9 @@ def get_cliente(id_cliente):
             "id_cliente": cliente.id_cliente,
             "tipo_documento": cliente.tipo_documento or "DNI",
             "numero_documento": cliente.numero_documento,
-            "nombres_razon_social": cliente.nombres_razon_social,
+            "nombre": cliente.nombre,
+            "nombres_razon_social": cliente.nombre,
             "telefono": cliente.telefono or "",
-            "correo": cliente.correo or "",
-            "direccion": cliente.direccion or "",
             "fecha_registro": cliente.fecha_registro.strftime("%Y-%m-%d %H:%M") if cliente.fecha_registro else ""
         }), 200
 
@@ -126,11 +122,9 @@ def create_cliente():
     try:
         data = request.json or {}
         num_doc = str(data.get("numero_documento", "")).strip()
-        nombre = str(data.get("nombres_razon_social", "")).strip()
+        nombre = str(data.get("nombre") or data.get("nombres_razon_social", "")).strip()
         tipo_doc = str(data.get("tipo_documento", "DNI")).strip().upper()
         telefono = str(data.get("telefono", "")).strip()
-        correo = str(data.get("correo", "")).strip()
-        direccion = str(data.get("direccion", "")).strip()
 
         if not num_doc:
             return jsonify({"error": "El número de documento es obligatorio."}), 400
@@ -155,7 +149,7 @@ def create_cliente():
         ).first()
 
         if existente:
-            return jsonify({"error": f"El documento {num_doc} ya está registrado a nombre de '{existente.nombres_razon_social}'."}), 400
+            return jsonify({"error": f"El documento {num_doc} ya está registrado a nombre de '{existente.nombre}'."}), 400
 
         # Si habia uno eliminado, lo reactivamos con la nueva informacion
         eliminado = db.query(models.Cliente).filter(
@@ -165,10 +159,8 @@ def create_cliente():
 
         if eliminado:
             eliminado.tipo_documento = tipo_doc
-            eliminado.nombres_razon_social = nombre
+            eliminado.nombre = nombre
             eliminado.telefono = telefono
-            eliminado.correo = correo
-            eliminado.direccion = direccion
             eliminado.estado_registro = 1
             db.commit()
             db.refresh(eliminado)
@@ -177,10 +169,8 @@ def create_cliente():
             nuevo = models.Cliente(
                 tipo_documento=tipo_doc,
                 numero_documento=num_doc,
-                nombres_razon_social=nombre,
+                nombre=nombre,
                 telefono=telefono,
-                correo=correo,
-                direccion=direccion,
                 estado_registro=1
             )
             db.add(nuevo)
@@ -192,7 +182,9 @@ def create_cliente():
             "message": "Cliente registrado exitosamente",
             "id_cliente": id_final,
             "numero_documento": num_doc,
-            "nombres_razon_social": nombre
+            "nombre": nombre,
+            "nombres_razon_social": nombre,
+            "telefono": telefono
         }), 201
 
     except Exception as e:
@@ -224,19 +216,17 @@ def update_cliente(id_cliente):
                 models.Cliente.estado_registro == 1
             ).first()
             if colision:
-                return jsonify({"error": f"El documento {num_doc} ya está asignado a otro cliente ({colision.nombres_razon_social})."}), 400
+                return jsonify({"error": f"El documento {num_doc} ya está asignado a otro cliente ({colision.nombre})."}), 400
             cliente.numero_documento = num_doc
 
         if "tipo_documento" in data:
             cliente.tipo_documento = tipo_doc
-        if "nombres_razon_social" in data and str(data["nombres_razon_social"]).strip():
-            cliente.nombres_razon_social = str(data["nombres_razon_social"]).strip()
+        if "nombre" in data and str(data["nombre"]).strip():
+            cliente.nombre = str(data["nombre"]).strip()
+        elif "nombres_razon_social" in data and str(data["nombres_razon_social"]).strip():
+            cliente.nombre = str(data["nombres_razon_social"]).strip()
         if "telefono" in data:
             cliente.telefono = str(data["telefono"]).strip()
-        if "correo" in data:
-            cliente.correo = str(data["correo"]).strip()
-        if "direccion" in data:
-            cliente.direccion = str(data["direccion"]).strip()
 
         db.commit()
         return jsonify({"message": "Cliente actualizado con éxito"}), 200
@@ -259,7 +249,7 @@ def delete_cliente(id_cliente):
         if not cliente:
             return jsonify({"error": "Cliente no encontrado"}), 404
 
-        nombre_cliente = cliente.nombres_razon_social
+        nombre_cliente = cliente.nombre
         cliente.estado_registro = 0
         db.commit()
         return jsonify({"message": f"Cliente '{nombre_cliente}' eliminado exitosamente"}), 200
