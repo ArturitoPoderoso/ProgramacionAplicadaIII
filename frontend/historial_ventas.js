@@ -116,7 +116,7 @@ const HistorialVentasModule = {
         this.ventasFiltradasCache = lista || [];
 
         if (this.ventasFiltradasCache.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 25px; color: #6b7280;">No se encontraron registros de ventas para esta sede</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 25px; color: #6b7280;">No se encontraron registros de ventas</td></tr>`;
             this.actualizarPaginacionUI(0, 1);
             return;
         }
@@ -132,9 +132,14 @@ const HistorialVentasModule = {
 
         paginaItems.forEach(v => {
             const tr = document.createElement('tr');
+            const clienteInfo = v.cliente_doc 
+                ? `<div><strong style="color: #1e293b;">${v.cliente}</strong></div><div style="font-size: 0.75rem; color: #64748b;">${v.cliente_doc}</div>`
+                : `<span>${v.cliente || 'Cliente General'}</span>`;
+
             tr.innerHTML = `
                 <td><strong style="color: #1e40af; font-family: monospace;">${v.correlativo}</strong></td>
                 <td>${v.fecha}</td>
+                <td>${clienteInfo}</td>
                 <td><span style="font-weight: 500;">${v.vendedor}</span></td>
                 <td><span class="badge" style="background: #f3f4f6; color: #374151; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">${v.sede}</span></td>
                 <td>${v.metodo_pago}</td>
@@ -182,7 +187,9 @@ const HistorialVentasModule = {
             const corr = (v.correlativo || '').toLowerCase();
             const vend = (v.vendedor || '').toLowerCase();
             const sede = (v.sede || '').toLowerCase();
-            return corr.includes(query) || vend.includes(query) || sede.includes(query);
+            const cli = (v.cliente || '').toLowerCase();
+            const doc = (v.cliente_doc || '').toLowerCase();
+            return corr.includes(query) || vend.includes(query) || sede.includes(query) || cli.includes(query) || doc.includes(query);
         });
 
         this.paginaActual = 1;

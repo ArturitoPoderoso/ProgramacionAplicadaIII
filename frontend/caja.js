@@ -496,10 +496,11 @@ const CajaModule = {
 
                 await this.cargarProductosCaja();
 
-                // Avisamos a las demas pantallas que cambio el stock
+                // Avisamos a las demas pantallas que cambio el stock y se registro la venta
                 if (window.EventBus) {
                     window.EventBus.emit('stock:updated', { source: 'caja' });
                     window.EventBus.emit('venta:registrada', { correlativo: result.correlativo });
+                    window.EventBus.emit('cliente:registrado', { id_cliente: result.id_cliente });
                 }
             } else {
                 this.notify(result.error || 'Error al procesar la venta', 'error');

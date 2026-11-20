@@ -273,3 +273,13 @@ window.abrirModalCrearCliente = abrirModalCrearCliente;
 window.abrirModalEditarCliente = abrirModalEditarCliente;
 window.guardarCliente = guardarCliente;
 window.eliminarCliente = eliminarCliente;
+
+// Escuchar eventos globales del sistema para reactividad asincrona
+if (window.EventBus) {
+    window.EventBus.on('cliente:registrado', () => {
+        const sec = document.getElementById('section-clientes');
+        if (sec && sec.style.display !== 'none') {
+            cargarClientes();
+        }
+    });
+}
