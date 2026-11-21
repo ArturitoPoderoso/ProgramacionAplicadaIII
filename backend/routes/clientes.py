@@ -1,11 +1,10 @@
 from flask import Blueprint, request, jsonify
-from sqlalchemy.orm import joinedload
+from sqlalchemy import text
 from database import get_db
-import models
 
 clientes_bp = Blueprint("clientes", __name__)
 
-# Listar todos los clientes activos con opcion de busqueda
+# Listar todos los clientes activos con opción de búsqueda
 @clientes_bp.route("/api/clientes", methods=["GET"])
 def get_clientes():
     db = get_db()
@@ -14,36 +13,49 @@ def get_clientes():
         page = request.args.get("page", type=int)
         limit = request.args.get("limit", default=20, type=int)
 
-        query = db.query(models.Cliente).filter(models.Cliente.estado_registro == 1)
+        base_sql = """
+            SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono, fecha_registro
+            FROM clientes
+            WHERE estado_registro = 1
+        """
+        params = {}
 
         if search:
-            query = query.filter(
-                (models.Cliente.numero_documento.ilike(f"%{search}%")) |
-                (models.Cliente.nombre.ilike(f"%{search}%")) |
-                (models.Cliente.telefono.ilike(f"%{search}%"))
-            )
+            base_sql += """
+                AND (
+                    numero_documento ILIKE :search
+                    OR nombre ILIKE :search
+                    OR telefono ILIKE :search
+                )
+            """
+            params["search"] = f"%{search}%"
 
-        query = query.order_by(models.Cliente.id_cliente.desc())
+        base_sql += " ORDER BY id_cliente DESC"
 
         if page and page > 0:
-            total_items = query.count()
+            count_sql = f"SELECT COUNT(*) FROM ({base_sql}) AS total_query"
+            total_items = db.execute(text(count_sql), params).scalar() or 0
             total_pages = (total_items + limit - 1) // limit if limit > 0 else 1
-            clientes = query.offset((page - 1) * limit).limit(limit).all()
+
+            paged_sql = base_sql + " LIMIT :limit OFFSET :offset"
+            params["limit"] = limit
+            params["offset"] = (page - 1) * limit
+            rows = db.execute(text(paged_sql), params).fetchall()
         else:
             total_items = None
             total_pages = None
-            clientes = query.all()
+            rows = db.execute(text(base_sql), params).fetchall()
 
         resultado = []
-        for c in clientes:
+        for r in rows:
             resultado.append({
-                "id_cliente": c.id_cliente,
-                "tipo_documento": c.tipo_documento or "DNI",
-                "numero_documento": c.numero_documento,
-                "nombre": c.nombre,
-                "nombres_razon_social": c.nombre,
-                "telefono": c.telefono or "",
-                "fecha_registro": c.fecha_registro.strftime("%Y-%m-%d %H:%M") if c.fecha_registro else ""
+                "id_cliente": r.id_cliente,
+                "tipo_documento": r.tipo_documento or "DNI",
+                "numero_documento": r.numero_documento,
+                "nombre": r.nombre,
+                "nombres_razon_social": r.nombre,
+                "telefono": r.telefono or "",
+                "fecha_registro": r.fecha_registro.strftime("%Y-%m-%d %H:%M") if r.fecha_registro else ""
             })
 
         if page and page > 0:
@@ -61,61 +73,65 @@ def get_clientes():
         return jsonify({"error": f"Error al consultar clientes: {str(e)}"}), 500
 
 
-# Busqueda rapida de cliente por DNI o RUC para autocompletar en caja y cotizaciones
+# Búsqueda rápida de cliente mediante función almacenada fn_buscar_cliente
 @clientes_bp.route("/api/clientes/buscar/<doc>", methods=["GET"])
 def buscar_cliente_por_doc(doc):
     db = get_db()
     try:
         doc_limpio = str(doc).strip()
-        cliente = db.query(models.Cliente).filter(
-            models.Cliente.numero_documento == doc_limpio,
-            models.Cliente.estado_registro == 1
-        ).first()
+        row = db.execute(
+            text("SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono FROM fn_buscar_cliente(:criterio)"),
+            {"criterio": doc_limpio}
+        ).fetchone()
 
-        if not cliente:
+        if not row:
             return jsonify({"error": "Cliente no encontrado"}), 404
 
         return jsonify({
-            "id_cliente": cliente.id_cliente,
-            "tipo_documento": cliente.tipo_documento or "DNI",
-            "numero_documento": cliente.numero_documento,
-            "nombre": cliente.nombre,
-            "nombres_razon_social": cliente.nombre,
-            "telefono": cliente.telefono or ""
+            "id_cliente": row.id_cliente,
+            "tipo_documento": row.tipo_documento or "DNI",
+            "numero_documento": row.numero_documento,
+            "nombre": row.nombre,
+            "nombres_razon_social": row.nombre,
+            "telefono": row.telefono or ""
         }), 200
 
     except Exception as e:
         return jsonify({"error": f"Error al buscar cliente: {str(e)}"}), 500
 
 
-# Obtener los datos de un cliente especifico
+# Obtener datos de un cliente específico por ID
 @clientes_bp.route("/api/clientes/<int:id_cliente>", methods=["GET"])
 def get_cliente(id_cliente):
     db = get_db()
     try:
-        cliente = db.query(models.Cliente).filter(
-            models.Cliente.id_cliente == id_cliente,
-            models.Cliente.estado_registro == 1
-        ).first()
+        row = db.execute(
+            text("""
+                SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono, fecha_registro
+                FROM clientes
+                WHERE id_cliente = :id AND estado_registro = 1
+            """),
+            {"id": id_cliente}
+        ).fetchone()
 
-        if not cliente:
+        if not row:
             return jsonify({"error": "Cliente no encontrado"}), 404
 
         return jsonify({
-            "id_cliente": cliente.id_cliente,
-            "tipo_documento": cliente.tipo_documento or "DNI",
-            "numero_documento": cliente.numero_documento,
-            "nombre": cliente.nombre,
-            "nombres_razon_social": cliente.nombre,
-            "telefono": cliente.telefono or "",
-            "fecha_registro": cliente.fecha_registro.strftime("%Y-%m-%d %H:%M") if cliente.fecha_registro else ""
+            "id_cliente": row.id_cliente,
+            "tipo_documento": row.tipo_documento or "DNI",
+            "numero_documento": row.numero_documento,
+            "nombre": row.nombre,
+            "nombres_razon_social": row.nombre,
+            "telefono": row.telefono or "",
+            "fecha_registro": row.fecha_registro.strftime("%Y-%m-%d %H:%M") if row.fecha_registro else ""
         }), 200
 
     except Exception as e:
         return jsonify({"error": f"Error al obtener cliente: {str(e)}"}), 500
 
 
-# Registrar un nuevo cliente
+# Registrar un nuevo cliente mediante Stored Procedure sp_guardar_cliente
 @clientes_bp.route("/api/clientes", methods=["POST"])
 def create_cliente():
     db = get_db()
@@ -132,7 +148,6 @@ def create_cliente():
         if not nombre:
             return jsonify({"error": "El nombre o razón social es obligatorio."}), 400
 
-        # Validaciones de formato peruano
         if tipo_doc == "DNI":
             if not num_doc.isdigit() or len(num_doc) != 8:
                 return jsonify({"error": f"El DNI debe tener exactamente 8 dígitos numéricos (ingresaste {len(num_doc)})."}), 400
@@ -142,44 +157,23 @@ def create_cliente():
             if not (num_doc.startswith("10") or num_doc.startswith("20")):
                 return jsonify({"error": "El RUC debe iniciar con '10' (Persona Natural) o '20' (Empresa)."}), 400
 
-        # Validar si ya existe
-        existente = db.query(models.Cliente).filter(
-            models.Cliente.numero_documento == num_doc,
-            models.Cliente.estado_registro == 1
-        ).first()
+        # Invocación del Stored Procedure sp_guardar_cliente
+        res = db.execute(
+            text("CALL sp_guardar_cliente(NULL, :tipo_doc, :num_doc, :nombre, :telefono, NULL, NULL)"),
+            {
+                "tipo_doc": tipo_doc,
+                "num_doc": num_doc,
+                "nombre": nombre,
+                "telefono": telefono
+            }
+        ).fetchone()
+        db.commit()
 
-        if existente:
-            return jsonify({"error": f"El documento {num_doc} ya está registrado a nombre de '{existente.nombre}'."}), 400
-
-        # Si habia uno eliminado, lo reactivamos con la nueva informacion
-        eliminado = db.query(models.Cliente).filter(
-            models.Cliente.numero_documento == num_doc,
-            models.Cliente.estado_registro == 0
-        ).first()
-
-        if eliminado:
-            eliminado.tipo_documento = tipo_doc
-            eliminado.nombre = nombre
-            eliminado.telefono = telefono
-            eliminado.estado_registro = 1
-            db.commit()
-            db.refresh(eliminado)
-            id_final = eliminado.id_cliente
-        else:
-            nuevo = models.Cliente(
-                tipo_documento=tipo_doc,
-                numero_documento=num_doc,
-                nombre=nombre,
-                telefono=telefono,
-                estado_registro=1
-            )
-            db.add(nuevo)
-            db.commit()
-            db.refresh(nuevo)
-            id_final = nuevo.id_cliente
+        id_final = res[0] if res else None
+        msg = res[1] if res and len(res) > 1 else "Cliente registrado exitosamente"
 
         return jsonify({
-            "message": "Cliente registrado exitosamente",
+            "message": msg,
             "id_cliente": id_final,
             "numero_documento": num_doc,
             "nombre": nombre,
@@ -189,70 +183,62 @@ def create_cliente():
 
     except Exception as e:
         db.rollback()
-        return jsonify({"error": f"Error al registrar cliente: {str(e)}"}), 500
+        err_msg = str(e)
+        if "ya está registrado" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al registrar cliente: {err_msg}"}), 500
 
 
-# Actualizar datos de un cliente
+# Actualizar datos de un cliente mediante Stored Procedure sp_guardar_cliente
 @clientes_bp.route("/api/clientes/<int:id_cliente>", methods=["PUT"])
 def update_cliente(id_cliente):
     db = get_db()
     try:
-        cliente = db.query(models.Cliente).filter(
-            models.Cliente.id_cliente == id_cliente,
-            models.Cliente.estado_registro == 1
-        ).first()
-
-        if not cliente:
-            return jsonify({"error": "Cliente no encontrado"}), 404
-
         data = request.json or {}
-        num_doc = str(data.get("numero_documento", cliente.numero_documento)).strip()
-        tipo_doc = str(data.get("tipo_documento", cliente.tipo_documento or "DNI")).strip().upper()
+        num_doc = str(data.get("numero_documento", "")).strip()
+        nombre = str(data.get("nombre") or data.get("nombres_razon_social", "")).strip()
+        tipo_doc = str(data.get("tipo_documento", "DNI")).strip().upper()
+        telefono = str(data.get("telefono", "")).strip()
 
-        if num_doc != cliente.numero_documento:
-            colision = db.query(models.Cliente).filter(
-                models.Cliente.numero_documento == num_doc,
-                models.Cliente.id_cliente != id_cliente,
-                models.Cliente.estado_registro == 1
-            ).first()
-            if colision:
-                return jsonify({"error": f"El documento {num_doc} ya está asignado a otro cliente ({colision.nombre})."}), 400
-            cliente.numero_documento = num_doc
-
-        if "tipo_documento" in data:
-            cliente.tipo_documento = tipo_doc
-        if "nombre" in data and str(data["nombre"]).strip():
-            cliente.nombre = str(data["nombre"]).strip()
-        elif "nombres_razon_social" in data and str(data["nombres_razon_social"]).strip():
-            cliente.nombre = str(data["nombres_razon_social"]).strip()
-        if "telefono" in data:
-            cliente.telefono = str(data["telefono"]).strip()
-
+        # Invocación del Stored Procedure sp_guardar_cliente pasando el id_cliente existente
+        res = db.execute(
+            text("CALL sp_guardar_cliente(:id_cliente, :tipo_doc, :num_doc, :nombre, :telefono, NULL, NULL)"),
+            {
+                "id_cliente": id_cliente,
+                "tipo_doc": tipo_doc if tipo_doc else None,
+                "num_doc": num_doc if num_doc else None,
+                "nombre": nombre if nombre else None,
+                "telefono": telefono
+            }
+        ).fetchone()
         db.commit()
-        return jsonify({"message": "Cliente actualizado con éxito"}), 200
+
+        msg = res[1] if res and len(res) > 1 else "Cliente actualizado con éxito"
+        return jsonify({"message": msg, "id_cliente": id_cliente}), 200
 
     except Exception as e:
         db.rollback()
-        return jsonify({"error": f"Error al actualizar cliente: {str(e)}"}), 500
+        err_msg = str(e)
+        if "ya está registrado" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al actualizar cliente: {err_msg}"}), 500
 
 
-# Eliminar un cliente de forma logica
+# Eliminar un cliente de forma lógica mediante Stored Procedure sp_eliminar_cliente
 @clientes_bp.route("/api/clientes/<int:id_cliente>", methods=["DELETE"])
 def delete_cliente(id_cliente):
     db = get_db()
     try:
-        cliente = db.query(models.Cliente).filter(
-            models.Cliente.id_cliente == id_cliente,
-            models.Cliente.estado_registro == 1
-        ).first()
-
-        if not cliente:
-            return jsonify({"error": "Cliente no encontrado"}), 404
-
-        nombre_cliente = cliente.nombre
-        cliente.estado_registro = 0
+        res = db.execute(
+            text("CALL sp_eliminar_cliente(:id_cliente, NULL)"),
+            {"id_cliente": id_cliente}
+        ).fetchone()
         db.commit()
-        return jsonify({"message": f"Cliente '{nombre_cliente}' eliminado exitosamente"}), 200
+
+        msg = res[0] if res else "Cliente eliminado exitosamente"
+        return jsonify({"message": msg}), 200
 
     except Exception as e:
         db.rollback()

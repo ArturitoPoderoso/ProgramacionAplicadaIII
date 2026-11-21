@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func
+from sqlalchemy import func, text
 from database import get_db
 import models
 
 almacen_bp = Blueprint("almacen", __name__)
 
-# Gestion de categorias de productos
+# Gestión de categorías de productos
 @almacen_bp.route("/api/categorias", methods=["GET", "POST"])
 def handle_categorias():
     if request.method == "POST":
@@ -132,130 +132,95 @@ def subcategoria_detail(sub_id):
     return jsonify({"message": "Subcategoría actualizada exitosamente"})
 
 def _calcular_siguiente_codigo_producto(db):
-    # Genera el siguiente correlativo para el codigo de producto (ej: PROD-00045)
-    ultimo_prod = db.query(models.Producto.codigo_producto)\
-        .filter(models.Producto.codigo_producto.like("PROD-%"))\
-        .order_by(models.Producto.id_producto.desc())\
-        .first()
+    # Genera el siguiente correlativo para el código de producto (ej: PROD-00045)
+    ultimo_prod = db.execute(
+        text("SELECT codigo_producto FROM productos WHERE codigo_producto LIKE 'PROD-%' ORDER BY id_producto DESC LIMIT 1")
+    ).fetchone()
 
     if ultimo_prod and ultimo_prod[0]:
         try:
             last_num = int(ultimo_prod[0].replace("PROD-", ""))
             siguiente_num = last_num + 1
         except Exception:
-            max_id = db.query(func.max(models.Producto.id_producto)).scalar() or 0
+            max_id = db.execute(text("SELECT MAX(id_producto) FROM productos")).scalar() or 0
             siguiente_num = max_id + 1
     else:
-        max_id = db.query(func.max(models.Producto.id_producto)).scalar() or 0
+        max_id = db.execute(text("SELECT MAX(id_producto) FROM productos")).scalar() or 0
         siguiente_num = max_id + 1
 
     codigo_siguiente = f"PROD-{siguiente_num:05d}"
-    while db.query(models.Producto.id_producto).filter(models.Producto.codigo_producto == codigo_siguiente).first():
+    while db.execute(text("SELECT id_producto FROM productos WHERE codigo_producto = :cod"), {"cod": codigo_siguiente}).fetchone():
         siguiente_num += 1
         codigo_siguiente = f"PROD-{siguiente_num:05d}"
 
     return codigo_siguiente, siguiente_num
 
+# Listado de productos por sede usando la función almacenada fn_listar_productos_sede
 @almacen_bp.route("/api/productos", methods=["GET"])
 def get_productos():
-    sede_id = request.args.get("sede_id", type=int) or request.args.get("id_sede", type=int)
-    search = (request.args.get("search") or "").strip()
+    sede_id = request.args.get("sede_id", type=int) or request.args.get("id_sede", type=int) or 1
+    search = (request.args.get("search") or "").strip().lower()
     id_cat = request.args.get("id_categoria", type=int)
     id_subcat = request.args.get("id_subcategoria", type=int)
     page = request.args.get("page", type=int)
     limit = request.args.get("limit", default=20, type=int)
 
     db = get_db()
-    
-    query = db.query(models.Producto).filter(models.Producto.estado_registro == 1)
-    if id_cat:
-        query = query.filter(models.Producto.id_categoria == id_cat)
-    if id_subcat:
-        query = query.filter(models.Producto.id_subcategoria == id_subcat)
-    if search:
-        query = query.filter(
-            (models.Producto.nombre.ilike(f"%{search}%")) | 
-            (models.Producto.codigo_producto.ilike(f"%{search}%"))
-        )
+    try:
+        # Llamada a la función PL/pgSQL fn_listar_productos_sede
+        rows = db.execute(
+            text("""
+                SELECT id_producto, codigo_producto, nombre, descripcion,
+                       precio_venta, precio_compra, stock_actual, stock_minimo,
+                       categoria, id_categoria, id_subcategoria, sede_id
+                FROM fn_listar_productos_sede(:sede_id)
+            """),
+            {"sede_id": sede_id}
+        ).fetchall()
 
-    # Si hay paginación solicitada
-    if page and page > 0:
-        total_items = query.count()
-        total_pages = (total_items + limit - 1) // limit if limit > 0 else 1
-        productos = query.order_by(models.Producto.id_producto.asc()).offset((page - 1) * limit).limit(limit).all()
-    else:
-        total_items = None
-        total_pages = None
-        productos = query.order_by(models.Producto.id_producto.asc()).all()
+        # Filtrado en memoria si hay parámetros adicionales
+        resultado = []
+        for r in rows:
+            if id_cat and r.id_categoria != id_cat:
+                continue
+            if id_subcat and r.id_subcategoria != id_subcat:
+                continue
+            if search:
+                if (search not in (r.nombre or "").lower()) and (search not in (r.codigo_producto or "").lower()):
+                    continue
 
-    todas_categorias = db.query(models.Categoria).all()
-    cat_dict = {c.id_categoria: c for c in todas_categorias}
+            resultado.append({
+                "id_producto": r.id_producto,
+                "codigo_producto": r.codigo_producto,
+                "nombre": r.nombre,
+                "descripcion": r.descripcion or "",
+                "precio_compra": round(float(r.precio_compra or 0.0), 2),
+                "precio_venta": round(float(r.precio_venta or 0.0), 2),
+                "stock_actual": int(r.stock_actual or 0),
+                "stock_minimo": int(r.stock_minimo or 0),
+                "categoria": r.categoria or "Sin categoría",
+                "subcategoria": "General",
+                "id_categoria": r.id_categoria,
+                "id_subcategoria": r.id_subcategoria
+            })
 
-    todas_subcategorias = db.query(models.Subcategoria).all()
-    subcat_dict = {s.id_subcategoria: s for s in todas_subcategorias}
-    
-    # Traemos solo el inventario de los productos de la pagina actual
-    prod_ids = [p.id_producto for p in productos]
-    inv_dict = {}
-    if prod_ids:
-        inv_query = db.query(models.InventarioSede).filter(models.InventarioSede.id_producto.in_(prod_ids))
-        if sede_id:
-            inv_query = inv_query.filter(models.InventarioSede.id_sede == sede_id)
-        inventarios = inv_query.all()
-        for inv in inventarios:
-            if inv.id_producto not in inv_dict:
-                inv_dict[inv.id_producto] = inv
-            
-    result = []
-    for p in productos:
-        cat_nombre = "Sin categoría"
-        subcat_nombre = "General"
-        
-        if p.id_categoria:
-            cat = cat_dict.get(p.id_categoria)
-            if cat:
-                cat_nombre = cat.nombre
+        if page and page > 0:
+            total_items = len(resultado)
+            total_pages = (total_items + limit - 1) // limit if limit > 0 else 1
+            start_idx = (page - 1) * limit
+            paged_items = resultado[start_idx : start_idx + limit]
+            return jsonify({
+                "items": paged_items,
+                "total": total_items,
+                "page": page,
+                "pages": total_pages,
+                "limit": limit
+            }), 200
 
-        if p.id_subcategoria:
-            subcat = subcat_dict.get(p.id_subcategoria)
-            if subcat:
-                subcat_nombre = subcat.nombre
-                if not p.id_categoria and subcat.id_categoria:
-                    cat_padre = cat_dict.get(subcat.id_categoria)
-                    if cat_padre:
-                        cat_nombre = cat_padre.nombre
-        
-        inv = inv_dict.get(p.id_producto)
-        precio_compra = inv.precio_compra if inv else 0.0
-        precio_venta = inv.precio_venta if inv else 0.0
-        stock_actual = inv.stock_actual if inv else 0
-        stock_minimo = inv.stock_minimo if inv else 0
-            
-        result.append({
-            "id_producto": p.id_producto,
-            "codigo_producto": p.codigo_producto,
-            "nombre": p.nombre,
-            "descripcion": p.descripcion,
-            "precio_compra": precio_compra,
-            "precio_venta": precio_venta,
-            "stock_actual": stock_actual,
-            "stock_minimo": stock_minimo,
-            "categoria": cat_nombre,
-            "subcategoria": subcat_nombre,
-            "id_categoria": p.id_categoria,
-            "id_subcategoria": p.id_subcategoria
-        })
+        return jsonify(resultado), 200
 
-    if page and page > 0:
-        return jsonify({
-            "items": result,
-            "total": total_items,
-            "page": page,
-            "pages": total_pages,
-            "limit": limit
-        }), 200
-
-    return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": f"Error al listar productos: {str(e)}"}), 500
 
 @almacen_bp.route("/api/productos/siguiente-codigo", methods=["GET"])
 def get_siguiente_codigo_producto():
@@ -263,77 +228,64 @@ def get_siguiente_codigo_producto():
     codigo_siguiente, siguiente_num = _calcular_siguiente_codigo_producto(db)
     return jsonify({"codigo": codigo_siguiente, "numero": siguiente_num})
 
+# Creación o actualización de producto mediante Stored Procedure sp_guardar_producto
 @almacen_bp.route("/api/productos", methods=["POST"])
 def create_producto():
     data = request.json or {}
     db = get_db()
-    
-    id_usuario = data.get("id_usuario")
-    usuario = db.query(models.User).filter(models.User.id == id_usuario).first()
-    if not usuario:
-        return jsonify({"error": "Usuario no encontrado"}), 400
-        
-    id_sede = usuario.id_sede or 1
-    
-    codigo_input = str(data.get("codigo_producto", "")).strip()
-    if not codigo_input:
-        codigo_input, _ = _calcular_siguiente_codigo_producto(db)
-        
-    # Validamos que el codigo tenga al menos 3 caracteres
-    if len(codigo_input) < 3:
-        return jsonify({"error": "El código de producto debe tener al menos 3 caracteres (Ej: PROD-00001)."}), 400
-
-    existe = db.query(models.Producto).filter(models.Producto.codigo_producto == codigo_input).first()
-    
     try:
-        nuevo_producto = existe
-        if not existe:
-            nuevo_producto = models.Producto(
-                codigo_producto=codigo_input,
-                nombre=str(data.get("nombre")).strip(),
-                descripcion=data.get("descripcion", ""),
-                id_categoria=data.get("id_categoria"),
-                id_subcategoria=data.get("id_subcategoria")
-            )
-            db.add(nuevo_producto)
-            db.flush()
+        id_usuario = data.get("id_usuario") or 1
+        id_sede = data.get("id_sede") or 1
 
-        # Crear inventario en la sede actual
-        inventario = db.query(models.InventarioSede).filter(
-            models.InventarioSede.id_producto == nuevo_producto.id_producto,
-            models.InventarioSede.id_sede == id_sede
-        ).first()
-        
-        if inventario:
-            return jsonify({"error": "El producto ya existe en el inventario de tu sede"}), 400
-            
-        nuevo_inventario = models.InventarioSede(
-            id_producto=nuevo_producto.id_producto,
-            id_sede=id_sede,
-            precio_compra=float(data.get("precio_compra", 0)),
-            precio_venta=float(data.get("precio_venta", 0)),
-            stock_actual=int(data.get("stock_actual", 0)),
-            stock_minimo=int(data.get("stock_minimo", 0))
-        )
-        db.add(nuevo_inventario)
-        
-        # Registrar movimiento de entrada inicial
-        if nuevo_inventario.stock_actual > 0:
-            db.flush()
-            movimiento = models.MovimientoAlmacen(
-                id_producto=nuevo_producto.id_producto,
-                id_sede=id_sede,
-                tipo='ENTRADA',
-                cantidad=nuevo_inventario.stock_actual,
-                id_usuario=id_usuario,
-                observacion="Stock inicial al crear/agregar producto a sede"
-            )
-            db.add(movimiento)
-            
+        codigo_input = str(data.get("codigo_producto", "")).strip()
+        if not codigo_input:
+            codigo_input, _ = _calcular_siguiente_codigo_producto(db)
+
+        if len(codigo_input) < 3:
+            return jsonify({"error": "El código de producto debe tener al menos 3 caracteres (Ej: PROD-00001)."}), 400
+
+        nombre = str(data.get("nombre", "")).strip()
+        if not nombre:
+            return jsonify({"error": "El nombre del producto es obligatorio."}), 400
+
+        descripcion = str(data.get("descripcion", "")).strip()
+        id_categoria = data.get("id_categoria")
+        id_subcategoria = data.get("id_subcategoria")
+        precio_venta = float(data.get("precio_venta", 0.0))
+        precio_compra = float(data.get("precio_compra", 0.0))
+        stock_actual = int(data.get("stock_actual", 0))
+        stock_minimo = int(data.get("stock_minimo", 5))
+
+        # Invocación de Stored Procedure sp_guardar_producto
+        res = db.execute(
+            text("""
+                CALL sp_guardar_producto(
+                    NULL, :codigo, :nombre, :descripcion, :id_cat, :id_subcat,
+                    :precio_venta, :precio_compra, :stock_actual, :stock_minimo,
+                    :id_sede, :id_usuario, NULL, NULL
+                )
+            """),
+            {
+                "codigo": codigo_input,
+                "nombre": nombre,
+                "descripcion": descripcion,
+                "id_cat": int(id_categoria) if id_categoria else None,
+                "id_subcat": int(id_subcategoria) if id_subcategoria else None,
+                "precio_venta": precio_venta,
+                "precio_compra": precio_compra,
+                "stock_actual": stock_actual,
+                "stock_minimo": stock_minimo,
+                "id_sede": int(id_sede),
+                "id_usuario": int(id_usuario)
+            }
+        ).fetchone()
         db.commit()
-        db.refresh(nuevo_producto)
-        id_prod = nuevo_producto.id_producto
-        return jsonify({"message": "Producto agregado a tu sede exitosamente", "id_producto": id_prod}), 201
+
+        id_prod = res[0] if res else None
+        msg = res[1] if res and len(res) > 1 else "Producto agregado a tu sede exitosamente"
+
+        return jsonify({"message": msg, "id_producto": id_prod}), 201
+
     except Exception as e:
         db.rollback()
         return jsonify({"error": str(e)}), 400
@@ -367,7 +319,6 @@ def seed_subcategorias():
                     created += 1
         db.commit()
 
-        # Asignamos productos sin subcategoria a la primera subcategoria disponible de su categoria
         prods = db.query(models.Producto).all()
         reassigned = 0
         for prod in prods:
@@ -381,4 +332,3 @@ def seed_subcategorias():
     except Exception as e:
         db.rollback()
         return jsonify({"error": str(e)}), 400
-

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import joinedload
 from database import get_db
 import models
@@ -7,7 +7,6 @@ import models
 proveedores_bp = Blueprint("proveedores", __name__)
 
 def check_supervisor_or_admin(db, user_role, user_id=None):
-    # Revisa si el usuario tiene rol de Administrador o Supervisor
     if user_role and user_role.lower() in ["administrador", "admin", "supervisor"]:
         return True
     if user_id:
@@ -20,7 +19,6 @@ def check_supervisor_or_admin(db, user_role, user_id=None):
 
 @proveedores_bp.route("/api/proveedores", methods=["GET"])
 def get_proveedores():
-    # Lista los proveedores activos con sus productos y ordenes registradas
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Vendedores no tienen acceso a proveedores"}), 403
@@ -34,7 +32,6 @@ def get_proveedores():
 
         proveedores = query.order_by(models.Proveedor.razon_social.asc()).all()
 
-        # Agrupamos en consultas directas para contar productos y ordenes por proveedor
         prods_map = dict(
             db.query(models.ProveedorProducto.id_proveedor, func.count(models.ProveedorProducto.id_proveedor_producto))
             .filter(models.ProveedorProducto.estado_registro == 1)
@@ -86,7 +83,6 @@ def get_proveedores():
 
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>", methods=["GET"])
 def get_proveedor(id_proveedor):
-    # Obtiene los datos de un proveedor por su ID
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -131,9 +127,9 @@ def get_proveedor(id_proveedor):
         return jsonify({"error": str(e)}), 500
 
 
+# Registrar un nuevo proveedor mediante Stored Procedure sp_guardar_proveedor
 @proveedores_bp.route("/api/proveedores", methods=["POST"])
 def create_proveedor():
-    # Registra un nuevo proveedor validando formato de RUC y celular
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Solo Administrador o Supervisor pueden registrar proveedores"}), 403
@@ -143,7 +139,7 @@ def create_proveedor():
         data = request.json or {}
         ruc = str(data.get("ruc", "")).strip()
         razon_social = str(data.get("razon_social", "")).strip()
-        condiciones_pago = str(data.get("condiciones_pago", "")).strip()
+        condiciones_pago = str(data.get("condiciones_pago", "Contado")).strip()
         id_sede = data.get("id_sede")
 
         if not ruc:
@@ -152,11 +148,8 @@ def create_proveedor():
         if not ruc.isdigit():
             return jsonify({"error": "El RUC debe contener únicamente dígitos numéricos."}), 400
 
-        if len(ruc) < 11:
-            return jsonify({"error": f"Error en RUC: Tiene menos de 11 dígitos ({len(ruc)} dígitos). Debe tener exactamente 11 dígitos."}), 400
-
-        if len(ruc) > 11:
-            return jsonify({"error": f"Error en RUC: Tiene más de 11 dígitos ({len(ruc)} dígitos). Debe tener exactamente 11 dígitos."}), 400
+        if len(ruc) != 11:
+            return jsonify({"error": f"Error en RUC: Debe tener exactamente 11 dígitos (ingresaste {len(ruc)})."}), 400
 
         if not (ruc.startswith("10") or ruc.startswith("20")):
             return jsonify({"error": "Error en RUC: Debe iniciar obligatoriamente con '10' (Persona Natural con Negocio) o '20' (Persona Jurídica / Empresa)."}), 400
@@ -168,269 +161,52 @@ def create_proveedor():
         if not telefono:
             return jsonify({"error": "El Celular es obligatorio."}), 400
 
-        if not telefono.isdigit():
-            return jsonify({"error": "El Celular debe contener únicamente dígitos numéricos."}), 400
-
-        if len(telefono) != 9:
-            return jsonify({"error": f"Error en Celular: Debe tener exactamente 9 dígitos ({len(telefono)} dígitos ingresados)."}), 400
-
-        if not telefono.startswith("9"):
-            return jsonify({"error": "Error en Celular: Debe ser un número celular que comience con '9'."}), 400
+        if not telefono.isdigit() or len(telefono) != 9 or not telefono.startswith("9"):
+            return jsonify({"error": "Error en Celular: Debe contener exactamente 9 dígitos y comenzar con '9'."}), 400
 
         id_sede_final = int(id_sede) if id_sede and str(id_sede).isdigit() else 1
 
-        # Validamos que no exista otro proveedor con el mismo RUC en la misma sede
-        existente = db.query(models.Proveedor).filter(
-            models.Proveedor.ruc == ruc,
-            models.Proveedor.id_sede == id_sede_final,
-            models.Proveedor.estado_registro == 1
-        ).first()
+        # Invocación de Stored Procedure sp_guardar_proveedor
+        res = db.execute(
+            text("""
+                CALL sp_guardar_proveedor(
+                    NULL, :id_sede, :ruc, :razon_social, :nombre_contacto,
+                    :telefono, :correo, :direccion, :condiciones_pago, NULL, NULL
+                )
+            """),
+            {
+                "id_sede": id_sede_final,
+                "ruc": ruc,
+                "razon_social": razon_social,
+                "nombre_contacto": str(data.get("nombre_contacto", "")).strip(),
+                "telefono": telefono,
+                "correo": str(data.get("correo", "")).strip(),
+                "direccion": str(data.get("direccion", "")).strip(),
+                "condiciones_pago": condiciones_pago
+            }
+        ).fetchone()
+        db.commit()
 
-        if existente:
-            return jsonify({"error": f"El RUC {ruc} ya se encuentra registrado para '{existente.razon_social}' en esta sede."}), 400
-
-        # Si había uno eliminado con el mismo RUC y sede, lo reactivamos con los datos nuevos
-        eliminado_previo = db.query(models.Proveedor).filter(
-            models.Proveedor.ruc == ruc,
-            models.Proveedor.id_sede == id_sede_final,
-            models.Proveedor.estado_registro == 0
-        ).first()
-
-        if eliminado_previo:
-            eliminado_previo.id_sede = id_sede_final
-            eliminado_previo.razon_social = razon_social
-            eliminado_previo.nombre_contacto = str(data.get("nombre_contacto", "")).strip()
-            eliminado_previo.telefono = telefono
-            eliminado_previo.correo = str(data.get("correo", "")).strip()
-            eliminado_previo.direccion = str(data.get("direccion", "")).strip()
-            eliminado_previo.condiciones_pago = condiciones_pago or "Contado"
-            eliminado_previo.estado_registro = 1
-            db.commit()
-            db.refresh(eliminado_previo)
-            id_nuevo = eliminado_previo.id_proveedor
-        else:
-            nuevo = models.Proveedor(
-                ruc=ruc,
-                id_sede=id_sede_final,
-                razon_social=razon_social,
-                nombre_contacto=str(data.get("nombre_contacto", "")).strip(),
-                telefono=telefono,
-                correo=str(data.get("correo", "")).strip(),
-                direccion=str(data.get("direccion", "")).strip(),
-                condiciones_pago=condiciones_pago or "Contado",
-                estado_registro=1
-            )
-            db.add(nuevo)
-            db.commit()
-            db.refresh(nuevo)
-            id_nuevo = nuevo.id_proveedor
+        id_nuevo = res[0] if res else None
+        msg = res[1] if res and len(res) > 1 else "Proveedor registrado con éxito."
 
         return jsonify({
-            "message": "Proveedor registrado con éxito.",
+            "message": msg,
             "id_proveedor": id_nuevo
         }), 201
 
     except Exception as e:
         db.rollback()
-        return jsonify({"error": f"Error al registrar proveedor: {str(e)}"}), 500
+        err_msg = str(e)
+        if "ya se encuentra registrado" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al registrar proveedor: {err_msg}"}), 500
 
 
+# Actualizar datos de un proveedor mediante Stored Procedure sp_guardar_proveedor
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>", methods=["PUT"])
 def update_proveedor(id_proveedor):
-    # Actualiza los datos del proveedor
-    user_role = request.headers.get("X-Role", "Administrador")
-    if user_role == "Vendedor":
-        return jsonify({"error": "Acceso denegado"}), 403
-
-    db = get_db()
-    try:
-        proveedor = db.query(models.Proveedor).filter(
-            models.Proveedor.id_proveedor == id_proveedor,
-            models.Proveedor.estado_registro == 1
-        ).first()
-
-        if not proveedor:
-            return jsonify({"error": "Proveedor no encontrado"}), 404
-
-        data = request.json or {}
-        if "id_sede" in data and str(data["id_sede"]).isdigit():
-            proveedor.id_sede = int(data["id_sede"])
-
-        ruc_nuevo = str(data.get("ruc", proveedor.ruc)).strip()
-
-        if ruc_nuevo != proveedor.ruc:
-            if not ruc_nuevo.isdigit():
-                return jsonify({"error": "El RUC debe contener únicamente dígitos numéricos."}), 400
-            if len(ruc_nuevo) < 11:
-                return jsonify({"error": f"Error en RUC: Tiene menos de 11 dígitos ({len(ruc_nuevo)} dígitos). Debe tener exactamente 11 dígitos."}), 400
-            if len(ruc_nuevo) > 11:
-                return jsonify({"error": f"Error en RUC: Tiene más de 11 dígitos ({len(ruc_nuevo)} dígitos). Debe tener exactamente 11 dígitos."}), 400
-            if not (ruc_nuevo.startswith("10") or ruc_nuevo.startswith("20")):
-                return jsonify({"error": "Error en RUC: Debe iniciar obligatoriamente con '10' (Persona Natural con Negocio) o '20' (Persona Jurídica / Empresa)."}), 400
-            colision = db.query(models.Proveedor).filter(
-                models.Proveedor.ruc == ruc_nuevo,
-                models.Proveedor.id_sede == proveedor.id_sede,
-                models.Proveedor.id_proveedor != id_proveedor,
-                models.Proveedor.estado_registro == 1
-            ).first()
-            if colision:
-                return jsonify({"error": f"El RUC {ruc_nuevo} ya pertenece a otro proveedor ({colision.razon_social}) en esta sede."}), 400
-            proveedor.ruc = ruc_nuevo
-
-        if "razon_social" in data and str(data["razon_social"]).strip():
-            proveedor.razon_social = str(data["razon_social"]).strip()
-        if "nombre_contacto" in data:
-            proveedor.nombre_contacto = str(data["nombre_contacto"]).strip()
-        if "telefono" in data:
-            tel = str(data["telefono"]).strip()
-            if not tel:
-                return jsonify({"error": "El Celular es obligatorio."}), 400
-            if not tel.isdigit():
-                return jsonify({"error": "El Celular debe contener únicamente dígitos numéricos."}), 400
-            if len(tel) != 9:
-                return jsonify({"error": f"Error en Celular: Debe tener exactamente 9 dígitos (ingresaste {len(tel)} dígitos)."}), 400
-            if not tel.startswith("9"):
-                return jsonify({"error": "Error en Celular: Debe comenzar obligatoriamente con '9' (número celular)."}), 400
-            proveedor.telefono = tel
-        if "correo" in data:
-            proveedor.correo = str(data["correo"]).strip()
-        if "direccion" in data:
-            proveedor.direccion = str(data["direccion"]).strip()
-        if "condiciones_pago" in data and str(data["condiciones_pago"]).strip():
-            proveedor.condiciones_pago = str(data["condiciones_pago"]).strip()
-
-        db.commit()
-        return jsonify({"message": "Proveedor actualizado correctamente."}), 200
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"error": f"Error al actualizar proveedor: {str(e)}"}), 500
-
-
-@proveedores_bp.route("/api/proveedores/<int:id_proveedor>", methods=["DELETE"])
-def delete_proveedor(id_proveedor):
-    # Desactiva un proveedor si no tiene ordenes de compra asociadas
-    user_role = request.headers.get("X-Role", "Administrador")
-    if user_role == "Vendedor":
-        return jsonify({"error": "Acceso denegado"}), 403
-
-    db = get_db()
-    try:
-        proveedor = db.query(models.Proveedor).filter(
-            models.Proveedor.id_proveedor == id_proveedor,
-            models.Proveedor.estado_registro == 1
-        ).first()
-
-        if not proveedor:
-            return jsonify({"error": "Proveedor no encontrado"}), 404
-
-        compras_asociadas = db.query(models.OrdenCompra).filter(
-            models.OrdenCompra.id_proveedor == id_proveedor,
-            models.OrdenCompra.estado_registro == 1
-        ).count()
-
-        if compras_asociadas > 0:
-            return jsonify({
-                "error": f"No se puede eliminar a '{proveedor.razon_social}' porque tiene {compras_asociadas} orden(es) de compra registrada(s). Por integridad contable y de auditoría la acción fue rechazada."
-            }), 400
-
-        nombre_prov = proveedor.razon_social
-        proveedor.estado_registro = 0
-        db.commit()
-        return jsonify({"message": f"Proveedor '{nombre_prov}' eliminado con éxito."}), 200
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"error": f"Error al eliminar proveedor: {str(e)}"}), 500
-
-
-@proveedores_bp.route("/api/proveedores/<int:id_proveedor>/catalogo", methods=["GET"])
-def get_catalogo_proveedor(id_proveedor):
-    # Lista los productos asociados a este proveedor con su precio pactado
-    user_role = request.headers.get("X-Role", "Administrador")
-    if user_role == "Vendedor":
-        return jsonify({"error": "Acceso denegado"}), 403
-
-    db = get_db()
-    try:
-        proveedor = db.query(models.Proveedor).filter(
-            models.Proveedor.id_proveedor == id_proveedor,
-            models.Proveedor.estado_registro == 1
-        ).first()
-
-        if not proveedor:
-            return jsonify({"error": "Proveedor no encontrado"}), 404
-
-        proveedor_info = {
-            "id_proveedor": proveedor.id_proveedor,
-            "ruc": proveedor.ruc,
-            "razon_social": proveedor.razon_social,
-            "id_sede": proveedor.id_sede,
-            "sede_nombre": proveedor.sede.nombre if proveedor.sede else "Todas las sedes",
-            "condiciones_pago": proveedor.condiciones_pago
-        }
-
-        sede_param = request.args.get("id_sede", type=int) or request.args.get("sede_id", type=int)
-        id_sede_consulta = proveedor.id_sede or sede_param or 1
-
-        items = db.query(models.ProveedorProducto).join(
-            models.Producto, models.ProveedorProducto.id_producto == models.Producto.id_producto
-        ).filter(
-            models.ProveedorProducto.id_proveedor == id_proveedor,
-            models.ProveedorProducto.estado_registro == 1,
-            models.Producto.estado_registro == 1
-        ).all()
-
-        resultado = []
-        for it in items:
-            p = it.producto
-            cat_nom = p.categoria.nombre if p.categoria else "Sin categoría"
-            subcat_nom = p.subcategoria_rel.nombre if p.subcategoria_rel else None
-
-            inv = db.query(models.InventarioSede).filter(
-                models.InventarioSede.id_producto == p.id_producto,
-                models.InventarioSede.id_sede == id_sede_consulta,
-                models.InventarioSede.estado_registro == 1
-            ).first()
-
-            if not inv:
-                inv = db.query(models.InventarioSede).filter(
-                    models.InventarioSede.id_producto == p.id_producto,
-                    models.InventarioSede.estado_registro == 1
-                ).first()
-
-            precio_oficial = round(float(inv.precio_compra), 2) if (inv and inv.precio_compra is not None) else round(float(it.precio_compra), 2)
-
-            if inv and inv.precio_compra is not None and it.precio_compra != precio_oficial:
-                it.precio_compra = precio_oficial
-
-            resultado.append({
-                "id_proveedor_producto": it.id_proveedor_producto,
-                "id_producto": p.id_producto,
-                "codigo_producto": p.codigo_producto,
-                "nombre": p.nombre,
-                "descripcion": p.descripcion or "",
-                "categoria": cat_nom,
-                "subcategoria": subcat_nom,
-                "precio_compra": precio_oficial,
-                "codigo_proveedor": it.codigo_proveedor or "",
-                "fecha_registro": it.fecha_registro.strftime("%Y-%m-%d") if it.fecha_registro else ""
-            })
-
-        db.commit()
-        return jsonify({
-            "proveedor": proveedor_info,
-            "productos": resultado
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Error al cargar catálogo del proveedor: {str(e)}"}), 500
-
-
-@proveedores_bp.route("/api/proveedores/<int:id_proveedor>/catalogo", methods=["POST"])
-@proveedores_bp.route("/api/proveedores/<int:id_proveedor>/productos", methods=["POST"])
-def asociar_producto_catalogo(id_proveedor):
-    # Asocia un producto al proveedor o actualiza su precio de compra pactado
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -438,90 +214,101 @@ def asociar_producto_catalogo(id_proveedor):
     db = get_db()
     try:
         data = request.json or {}
-        id_producto = data.get("id_producto")
-        precio_compra = data.get("precio_compra")
-        codigo_proveedor = str(data.get("codigo_proveedor", "")).strip()
+        id_sede = int(data.get("id_sede", 1))
+        ruc = str(data.get("ruc", "")).strip()
+        razon_social = str(data.get("razon_social", "")).strip()
+        telefono = str(data.get("telefono", "")).strip()
 
-        if not id_producto:
-            return jsonify({"error": "Debe seleccionar un producto."}), 400
-
-        try:
-            precio_compra = float(precio_compra)
-            if precio_compra <= 0:
-                raise ValueError()
-        except (TypeError, ValueError):
-            return jsonify({"error": "El precio de compra debe ser un número mayor a 0."}), 400
-
-        proveedor = db.query(models.Proveedor).filter(
-            models.Proveedor.id_proveedor == id_proveedor,
-            models.Proveedor.estado_registro == 1
-        ).first()
-        if not proveedor:
-            return jsonify({"error": "Proveedor no encontrado o inactivo"}), 404
-
-        producto = db.query(models.Producto).filter(
-            models.Producto.id_producto == id_producto,
-            models.Producto.estado_registro == 1
-        ).first()
-        if not producto:
-            return jsonify({"error": "Producto no encontrado o inactivo"}), 404
-
-        existente = db.query(models.ProveedorProducto).filter(
-            models.ProveedorProducto.id_proveedor == id_proveedor,
-            models.ProveedorProducto.id_producto == id_producto
-        ).first()
-
-        if existente:
-            existente.precio_compra = precio_compra
-            if codigo_proveedor:
-                existente.codigo_proveedor = codigo_proveedor
-            existente.estado_registro = 1
-            msg = f"Precio de compra actualizado a S/. {precio_compra:.2f} para '{producto.nombre}'."
-        else:
-            nuevo = models.ProveedorProducto(
-                id_proveedor=id_proveedor,
-                id_producto=id_producto,
-                precio_compra=precio_compra,
-                codigo_proveedor=codigo_proveedor,
-                estado_registro=1
-            )
-            db.add(nuevo)
-            msg = f"Producto '{producto.nombre}' incorporado al catálogo de {proveedor.razon_social} con precio S/. {precio_compra:.2f}."
-
-        invs = db.query(models.InventarioSede).filter(models.InventarioSede.id_producto == id_producto).all()
-        for inv in invs:
-            inv.precio_compra = precio_compra
-
+        # Invocación de Stored Procedure sp_guardar_proveedor
+        res = db.execute(
+            text("""
+                CALL sp_guardar_proveedor(
+                    :id_proveedor, :id_sede, :ruc, :razon_social, :nombre_contacto,
+                    :telefono, :correo, :direccion, :condiciones_pago, NULL, NULL
+                )
+            """),
+            {
+                "id_proveedor": id_proveedor,
+                "id_sede": id_sede,
+                "ruc": ruc if ruc else None,
+                "razon_social": razon_social if razon_social else None,
+                "nombre_contacto": str(data.get("nombre_contacto", "")).strip(),
+                "telefono": telefono if telefono else None,
+                "correo": str(data.get("correo", "")).strip(),
+                "direccion": str(data.get("direccion", "")).strip(),
+                "condiciones_pago": str(data.get("condiciones_pago", "Contado")).strip()
+            }
+        ).fetchone()
         db.commit()
+
+        msg = res[1] if res and len(res) > 1 else "Proveedor actualizado correctamente."
         return jsonify({"message": msg}), 200
 
     except Exception as e:
         db.rollback()
-        return jsonify({"error": f"Error al asociar producto: {str(e)}"}), 500
+        err_msg = str(e)
+        if "ya pertenece a otro proveedor" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al actualizar proveedor: {err_msg}"}), 500
 
 
-@proveedores_bp.route("/api/proveedores/<int:id_proveedor>/catalogo/<int:id_producto>", methods=["DELETE"])
-def desasociar_producto_catalogo(id_proveedor, id_producto):
-    # Quita un producto del catalogo de este proveedor
+# Eliminar un proveedor mediante Stored Procedure sp_eliminar_proveedor
+@proveedores_bp.route("/api/proveedores/<int:id_proveedor>", methods=["DELETE"])
+def delete_proveedor(id_proveedor):
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
 
     db = get_db()
     try:
-        asoc = db.query(models.ProveedorProducto).filter(
-            models.ProveedorProducto.id_proveedor == id_proveedor,
-            models.ProveedorProducto.id_producto == id_producto
-        ).first()
-
-        if not asoc:
-            return jsonify({"error": "El producto no está asociado a este proveedor."}), 404
-
-        asoc.estado_registro = 0
+        # Invocación de Stored Procedure sp_eliminar_proveedor
+        res = db.execute(
+            text("CALL sp_eliminar_proveedor(:id_proveedor, NULL)"),
+            {"id_proveedor": id_proveedor}
+        ).fetchone()
         db.commit()
-        return jsonify({"message": "Producto removido del catálogo del proveedor."}), 200
+
+        msg = res[0] if res else "Proveedor eliminado con éxito."
+        return jsonify({"message": msg}), 200
 
     except Exception as e:
         db.rollback()
-        return jsonify({"error": f"Error al desasociar producto: {str(e)}"}), 500
+        err_msg = str(e)
+        if "No se puede eliminar" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al eliminar proveedor: {err_msg}"}), 500
 
+
+@proveedores_bp.route("/api/proveedores/<int:id_proveedor>/catalogo", methods=["GET"])
+def get_catalogo_proveedor(id_proveedor):
+    user_role = request.headers.get("X-Role", "Administrador")
+    if user_role == "Vendedor":
+        return jsonify({"error": "Acceso denegado"}), 403
+
+    db = get_db()
+    try:
+        rows = db.query(models.ProveedorProducto).options(
+            joinedload(models.ProveedorProducto.producto)
+        ).filter(
+            models.ProveedorProducto.id_proveedor == id_proveedor,
+            models.ProveedorProducto.estado_registro == 1
+        ).all()
+
+        catalogo = []
+        for r in rows:
+            prod = r.producto
+            catalogo.append({
+                "id_proveedor_producto": r.id_proveedor_producto,
+                "id_producto": r.id_producto,
+                "codigo_producto": prod.codigo_producto if prod else "",
+                "nombre_producto": prod.nombre if prod else "Producto desconocido",
+                "precio_pactado": round(float(r.precio_pactado), 2),
+                "plazo_entrega_dias": r.plazo_entrega_dias or 1,
+                "es_principal": bool(r.es_principal)
+            })
+
+        return jsonify(catalogo), 200
+    except Exception as e:
+        return jsonify({"error": f"Error al obtener catálogo del proveedor: {str(e)}"}), 500

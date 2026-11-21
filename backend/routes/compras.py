@@ -1,7 +1,8 @@
+import json
 from datetime import datetime, timezone, timedelta
 from flask import Blueprint, request, jsonify
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func
+from sqlalchemy import func, text
 from database import get_db
 import models
 
@@ -20,26 +21,26 @@ def format_peru_datetime(dt):
         return dt.strftime("%Y-%m-%d %H:%M")
 
 def _calcular_siguiente_correlativo(db):
-    # Calcula el siguiente correlativo para la orden de compra segun el año actual
+    # Calcula el siguiente correlativo para la orden de compra según el año actual
     year = datetime.now(PERU_TZ).year
     prefix = f"OC-{year}-"
-    ultima_oc = db.query(models.OrdenCompra.correlativo)\
-        .filter(models.OrdenCompra.correlativo.like(f"{prefix}%"))\
-        .order_by(models.OrdenCompra.id_orden_compra.desc())\
-        .first()
+    ultima_oc = db.execute(
+        text("SELECT correlativo FROM ordenes_compra WHERE correlativo LIKE :prefix ORDER BY id_orden_compra DESC LIMIT 1"),
+        {"prefix": f"{prefix}%"}
+    ).fetchone()
 
     if ultima_oc and ultima_oc[0]:
         try:
             last_num = int(ultima_oc[0].split("-")[-1])
             siguiente_num = last_num + 1
         except Exception:
-            max_id = db.query(func.max(models.OrdenCompra.id_orden_compra)).scalar() or 0
+            max_id = db.execute(text("SELECT MAX(id_orden_compra) FROM ordenes_compra")).scalar() or 0
             siguiente_num = max_id + 1
     else:
         siguiente_num = 1
 
     correlativo = f"{prefix}{siguiente_num:04d}"
-    while db.query(models.OrdenCompra.id_orden_compra).filter(models.OrdenCompra.correlativo == correlativo).first():
+    while db.execute(text("SELECT id_orden_compra FROM ordenes_compra WHERE correlativo = :cor"), {"cor": correlativo}).fetchone():
         siguiente_num += 1
         correlativo = f"{prefix}{siguiente_num:04d}"
 
@@ -47,7 +48,6 @@ def _calcular_siguiente_correlativo(db):
 
 @compras_bp.route("/api/compras/siguiente-correlativo", methods=["GET"])
 def get_siguiente_correlativo_compra():
-    # Devuelve el siguiente correlativo disponible para una orden de compra
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -60,17 +60,17 @@ def get_siguiente_correlativo_compra():
         return jsonify({"error": f"Error al generar correlativo: {str(e)}"}), 500
 
 
+# Emitir orden de compra mediante Stored Procedure sp_procesar_compra
 @compras_bp.route("/api/compras", methods=["POST"])
 def emitir_orden_compra():
-    # Registra una nueva orden de compra con sus productos y proveedor
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Vendedores no pueden emitir órdenes de compra"}), 403
 
     data = request.json or {}
     id_proveedor = data.get("id_proveedor")
-    id_sede = data.get("id_sede")
-    id_usuario = data.get("id_usuario")
+    id_sede = data.get("id_sede") or 1
+    id_usuario = data.get("id_usuario") or 1
     fecha_esperada = str(data.get("fecha_esperada", "")).strip()
     observacion = str(data.get("observacion", "")).strip()
     items = data.get("items", [])
@@ -92,80 +92,57 @@ def emitir_orden_compra():
 
     db = get_db()
     try:
-        proveedor = db.query(models.Proveedor).filter(
-            models.Proveedor.id_proveedor == id_proveedor,
-            models.Proveedor.estado_registro == 1
-        ).first()
-
-        if not proveedor:
-            return jsonify({"error": "El proveedor seleccionado no existe o está inactivo."}), 404
-
-        id_sede_final = int(id_sede) if id_sede else (proveedor.id_sede or 1)
-
         correlativo = _calcular_siguiente_correlativo(db)
-
         total_orden = 0.0
-        detalles_a_crear = []
+        detalles_json = []
 
         for item in items:
-            id_prod = item.get("id_producto")
+            id_prod = int(item.get("id_producto", 0))
             cant = int(item.get("cantidad", 0))
             precio_u = float(item.get("precio_unitario", 0.0))
 
             if not id_prod or cant <= 0 or precio_u <= 0:
                 return jsonify({"error": "Datos de producto inválidos (cantidad y precio deben ser mayores a 0)."}), 400
 
-            prod = db.query(models.Producto).filter(models.Producto.id_producto == id_prod).first()
-            if not prod:
-                return jsonify({"error": f"El producto ID {id_prod} no existe en el sistema."}), 404
-
             subtotal_item = round(cant * precio_u, 2)
             total_orden += subtotal_item
 
-            detalles_a_crear.append({
+            detalles_json.append({
                 "id_producto": id_prod,
-                "cantidad_solicitada": cant,
-                "cantidad_recibida": 0,
+                "cantidad": cant,
                 "precio_unitario": precio_u,
                 "subtotal": subtotal_item
             })
 
         total_orden = round(total_orden, 2)
 
-        if not id_usuario:
-            primer_u = db.query(models.User).first()
-            id_usuario = primer_u.id if primer_u else 1
-
-        nueva_orden = models.OrdenCompra(
-            correlativo=correlativo,
-            id_proveedor=id_proveedor,
-            id_sede=id_sede_final,
-            id_usuario=id_usuario,
-            fecha_esperada=fecha_esperada,
-            estado="PENDIENTE",
-            total=total_orden,
-            observacion=observacion,
-            estado_registro=1
-        )
-        db.add(nueva_orden)
-        db.flush()
-
-        for det in detalles_a_crear:
-            nuevo_det = models.DetalleOrdenCompra(
-                id_orden_compra=nueva_orden.id_orden_compra,
-                id_producto=det["id_producto"],
-                cantidad_solicitada=det["cantidad_solicitada"],
-                cantidad_recibida=0,
-                precio_unitario=det["precio_unitario"],
-                subtotal=det["subtotal"]
-            )
-            db.add(nuevo_det)
-
+        # Invocación de Stored Procedure sp_procesar_compra
+        res = db.execute(
+            text("""
+                CALL sp_procesar_compra(
+                    :id_usuario, :id_sede, :id_proveedor, :correlativo,
+                    :total, :fecha_esperada, :observacion,
+                    CAST(:detalles AS jsonb), NULL, NULL
+                )
+            """),
+            {
+                "id_usuario": int(id_usuario),
+                "id_sede": int(id_sede),
+                "id_proveedor": int(id_proveedor),
+                "correlativo": correlativo,
+                "total": total_orden,
+                "fecha_esperada": fecha_esperada if fecha_esperada else None,
+                "observacion": observacion,
+                "detalles": json.dumps(detalles_json)
+            }
+        ).fetchone()
         db.commit()
-        id_creada = nueva_orden.id_orden_compra
+
+        id_creada = res[0] if res else None
+        msg = res[1] if res and len(res) > 1 else f"Orden de compra {correlativo} emitida con éxito."
 
         return jsonify({
-            "message": f"Orden de compra {correlativo} emitida con éxito.",
+            "message": msg,
             "id_orden_compra": id_creada,
             "correlativo": correlativo,
             "total": total_orden
@@ -178,7 +155,6 @@ def emitir_orden_compra():
 
 @compras_bp.route("/api/compras", methods=["GET"])
 def get_compras():
-    # Lista las ordenes de compra con filtros por sede, estado o busqueda
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -241,7 +217,6 @@ def get_compras():
                 "observacion": o.observacion or ""
             })
 
-        # Paginacion opcional si la pide el frontend
         page = request.args.get("page", type=int)
         limit = request.args.get("limit", default=15, type=int)
 
@@ -266,7 +241,6 @@ def get_compras():
 
 @compras_bp.route("/api/compras/<int:id_orden>", methods=["GET"])
 def get_detalle_compra(id_orden):
-    # Devuelve los datos y productos de una orden de compra especifica
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado"}), 403
@@ -328,161 +302,76 @@ def get_detalle_compra(id_orden):
         return jsonify({"error": f"Error al obtener detalle de compra: {str(e)}"}), 500
 
 
+# Recepción de mercadería mediante Stored Procedure sp_recibir_compra
 @compras_bp.route("/api/compras/<int:id_orden>/recibir", methods=["POST"])
 def recibir_orden_compra(id_orden):
-    # Registra la recepcion de mercaderia, suma el stock al inventario y crea el movimiento de entrada
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Vendedores no pueden recibir mercadería"}), 403
 
     db = get_db()
     try:
-        orden = db.query(models.OrdenCompra).filter(
-            models.OrdenCompra.id_orden_compra == id_orden,
-            models.OrdenCompra.estado_registro == 1
-        ).first()
-
-        if not orden:
-            return jsonify({"error": "Orden de compra no encontrada."}), 404
-
-        if orden.estado == "RECIBIDA":
-            return jsonify({"error": f"La orden {orden.correlativo} ya fue recibida e ingresada al almacén anteriormente."}), 400
-
-        if orden.estado == "ANULADA":
-            return jsonify({"error": f"La orden {orden.correlativo} está anulada. No se puede recibir mercadería."}), 400
-
-        prov = orden.proveedor
-        prov_nombre = prov.razon_social if prov else "Proveedor"
-
         data = request.json or {}
-        id_usuario = data.get("id_usuario") or orden.id_usuario
+        id_usuario = data.get("id_usuario") or 1
 
-        orden.estado = "RECIBIDA"
-        orden.fecha_recepcion = datetime.now()
-
-        productos_ingresados = []
-        for det in orden.detalles:
-            cant_recibida = det.cantidad_solicitada
-            det.cantidad_recibida = cant_recibida
-
-            inv = db.query(models.InventarioSede).filter(
-                models.InventarioSede.id_producto == det.id_producto,
-                models.InventarioSede.id_sede == orden.id_sede
-            ).first()
-
-            if inv:
-                inv.stock_actual = (inv.stock_actual or 0) + cant_recibida
-                inv.precio_compra = det.precio_unitario
-                inv.estado_registro = 1
-            else:
-                inv = models.InventarioSede(
-                    id_producto=det.id_producto,
-                    id_sede=orden.id_sede,
-                    precio_compra=det.precio_unitario,
-                    precio_venta=round(det.precio_unitario * 1.30, 2),
-                    stock_actual=cant_recibida,
-                    stock_minimo=5,
-                    estado_registro=1
-                )
-                db.add(inv)
-
-            mov = models.MovimientoAlmacen(
-                id_producto=det.id_producto,
-                id_sede=orden.id_sede,
-                tipo="ENTRADA",
-                cantidad=cant_recibida,
-                id_usuario=id_usuario,
-                observacion=f"Ingreso por Compra {orden.correlativo} - Proveedor: {prov_nombre}"
-            )
-            db.add(mov)
-
-            prod = det.producto
-            prod_nombre = prod.nombre if prod else f"ID {det.id_producto}"
-            productos_ingresados.append(f"{prod_nombre} (+{cant_recibida} uds)")
-
-        correlativo_final = orden.correlativo
+        # Invocación de Stored Procedure sp_recibir_compra
+        res = db.execute(
+            text("CALL sp_recibir_compra(:id_orden, :id_usuario, NULL)"),
+            {"id_orden": id_orden, "id_usuario": int(id_usuario)}
+        ).fetchone()
         db.commit()
 
+        msg = res[0] if res else "Mercadería recibida exitosamente."
+
         return jsonify({
-            "message": f"¡Mercadería de la orden {correlativo_final} recibida exitosamente! Se actualizó el stock en almacén.",
-            "correlativo": correlativo_final,
-            "estado": "RECIBIDA",
-            "productos_ingresados": productos_ingresados
+            "message": msg,
+            "estado": "RECIBIDA"
         }), 200
 
     except Exception as e:
         db.rollback()
-        return jsonify({"error": f"Error al procesar la recepción de mercadería: {str(e)}"}), 500
+        err_msg = str(e)
+        if "ya fue recibida" in err_msg or "está anulada" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al procesar la recepción de mercadería: {err_msg}"}), 500
 
 
+# Anulación de compra mediante Stored Procedure sp_anular_compra
 @compras_bp.route("/api/compras/<int:id_orden>/anular", methods=["POST"])
 def anular_orden_compra(id_orden):
-    # Anula la orden y descuenta el stock si la mercaderia ya habia ingresado al almacen
     user_role = request.headers.get("X-Role", "Administrador")
     if user_role == "Vendedor":
         return jsonify({"error": "Acceso denegado: Vendedores no pueden anular órdenes de compra"}), 403
 
     db = get_db()
     try:
-        orden = db.query(models.OrdenCompra).filter(
-            models.OrdenCompra.id_orden_compra == id_orden,
-            models.OrdenCompra.estado_registro == 1
-        ).first()
-
-        if not orden:
-            return jsonify({"error": "Orden de compra no encontrada."}), 404
-
-        if orden.estado == "ANULADA":
-            return jsonify({"error": "Esta orden ya se encuentra anulada."}), 400
-
         data = request.json or {}
         motivo = str(data.get("motivo", "Anulación solicitada por el usuario")).strip()
-        id_usuario = data.get("id_usuario") or orden.id_usuario
+        id_usuario = data.get("id_usuario") or 1
 
-        if orden.estado == "RECIBIDA":
-            for det in orden.detalles:
-                inv = db.query(models.InventarioSede).filter(
-                    models.InventarioSede.id_producto == det.id_producto,
-                    models.InventarioSede.id_sede == orden.id_sede
-                ).first()
-                if not inv or inv.stock_actual < (det.cantidad_recibida or det.cantidad_solicitada):
-                    prod = det.producto
-                    prod_nombre = prod.nombre if prod else f"ID {det.id_producto}"
-                    return jsonify({
-                        "error": f"No se puede anular: El producto '{prod_nombre}' ya fue vendido o despachado y no cuenta con suficiente stock en almacén para revertir."
-                    }), 400
-
-            for det in orden.detalles:
-                cant_a_revertir = det.cantidad_recibida or det.cantidad_solicitada
-                inv = db.query(models.InventarioSede).filter(
-                    models.InventarioSede.id_producto == det.id_producto,
-                    models.InventarioSede.id_sede == orden.id_sede
-                ).first()
-                if inv:
-                    inv.stock_actual -= cant_a_revertir
-
-                mov = models.MovimientoAlmacen(
-                    id_producto=det.id_producto,
-                    id_sede=orden.id_sede,
-                    tipo="SALIDA",
-                    cantidad=cant_a_revertir,
-                    id_usuario=id_usuario,
-                    observacion=f"Reversión por Anulación de Compra {orden.correlativo}. Motivo: {motivo}"
-                )
-                db.add(mov)
-
-        correlativo_anulada = orden.correlativo
-        orden.estado = "ANULADA"
-        orden.observacion = (orden.observacion or "") + f" [ANULADA: {motivo}]"
+        # Invocación de Stored Procedure sp_anular_compra
+        res = db.execute(
+            text("CALL sp_anular_compra(:id_orden, :id_usuario, :motivo, NULL)"),
+            {
+                "id_orden": id_orden,
+                "id_usuario": int(id_usuario),
+                "motivo": motivo
+            }
+        ).fetchone()
         db.commit()
 
+        msg = res[0] if res else "Orden de compra anulada correctamente."
+
         return jsonify({
-            "message": f"Orden de compra {correlativo_anulada} anulada correctamente.",
-            "correlativo": correlativo_anulada,
+            "message": msg,
             "estado": "ANULADA"
         }), 200
 
     except Exception as e:
         db.rollback()
-        return jsonify({"error": f"Error al anular la orden de compra: {str(e)}"}), 500
-
+        err_msg = str(e)
+        if "ya se encuentra anulada" in err_msg or "No se puede anular" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al anular la orden de compra: {err_msg}"}), 500

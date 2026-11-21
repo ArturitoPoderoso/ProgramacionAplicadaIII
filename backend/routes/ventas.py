@@ -1,6 +1,8 @@
 import uuid
+import json
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
+from sqlalchemy import text
 from sqlalchemy.orm import joinedload
 from database import get_db
 import models
@@ -38,128 +40,66 @@ def create_venta():
             raise Exception("Usuario no encontrado")
             
         id_sede = usuario.id_sede or 1
-        
-        # Generamos el correlativo del ticket de venta
         correlativo = f"V-{datetime.now().strftime('%Y%m%d%H%M%S')}-{str(uuid.uuid4())[:4].upper()}"
-        
-        # Calculamos subtotales y validamos cada producto
+
+        # Preparar detalles y calcular total
+        detalles_sp = []
         subtotal_acumulado = 0.0
-        detalles_procesados = []
-
         for det in detalles:
-            producto = db.query(models.Producto).filter(models.Producto.id_producto == det["id_producto"]).first()
-            if not producto:
-                raise Exception(f"Producto con ID {det['id_producto']} no encontrado")
-                
-            inventario = db.query(models.InventarioSede).filter(
-                models.InventarioSede.id_producto == producto.id_producto,
-                models.InventarioSede.id_sede == id_sede
-            ).first()
-            
-            if not inventario:
-                raise Exception(f"El producto {producto.nombre} no existe en el inventario de esta sede.")
-                
-            cantidad = int(det["cantidad"])
-            if inventario.stock_actual < cantidad:
-                raise Exception(f"Stock insuficiente para {producto.nombre} en tu sede. Tienes: {inventario.stock_actual}")
-
-            precio_unitario = float(det["precio_unitario"])
-            descuento_unitario = float(det.get("descuento_unitario", 0.0))
-            precio_efectivo_unitario = precio_unitario - descuento_unitario
-            
-            # Validamos que el precio con descuento no quede por debajo del costo de compra
-            precio_compra = float(inventario.precio_compra) if (inventario.precio_compra is not None) else 0.0
-            if precio_efectivo_unitario < precio_compra:
-                raise Exception(f"No se puede aplicar descuento a '{producto.nombre}': El precio final de venta (S/ {precio_efectivo_unitario:.2f}) es inferior al costo de compra (S/ {precio_compra:.2f}).")
-
-            subtotal_item = cantidad * precio_efectivo_unitario
-            subtotal_acumulado += subtotal_item
-
-            detalles_procesados.append({
-                "producto": producto,
-                "inventario": inventario,
-                "cantidad": cantidad,
-                "precio_unitario": precio_unitario,
-                "descuento_unitario": descuento_unitario,
-                "subtotal": subtotal_item
+            pu = float(det["precio_unitario"])
+            du = float(det.get("descuento_unitario", 0.0))
+            cant = int(det["cantidad"])
+            sub = cant * (pu - du)
+            subtotal_acumulado += sub
+            detalles_sp.append({
+                "id_producto": int(det["id_producto"]),
+                "cantidad": cant,
+                "precio_unitario": pu,
+                "descuento_unitario": du,
+                "subtotal": round(sub, 2)
             })
 
         total_venta = round(max(0.0, subtotal_acumulado), 2)
-
-        # Identificar o vincular cliente si se envio en la venta
-        id_cliente = data.get("id_cliente")
         cliente_nombre = str(data.get("cliente_nombre") or data.get("cliente") or "Cliente General").strip()
         cliente_doc = str(data.get("cliente_doc") or data.get("dni") or "").strip()
         cliente_tel = str(data.get("cliente_telefono") or data.get("telefono") or "").strip()
+        id_cliente = data.get("id_cliente")
 
+        # 1. Guardar o actualizar cliente mediante Stored Procedure
         if cliente_doc and not id_cliente:
-            cli = db.query(models.Cliente).filter(models.Cliente.numero_documento == cliente_doc).first()
-            if cli:
-                id_cliente = cli.id_cliente
-                if not cliente_nombre or cliente_nombre == "Cliente General":
-                    cliente_nombre = cli.nombres_razon_social
-                if cliente_tel and not cli.telefono:
-                    cli.telefono = cliente_tel
-            elif cliente_nombre and cliente_nombre != "Cliente General":
-                tipo_doc = "RUC" if len(cliente_doc) == 11 else "DNI"
-                nuevo_cli = models.Cliente(
-                    tipo_documento=tipo_doc,
-                    numero_documento=cliente_doc,
-                    nombres_razon_social=cliente_nombre,
-                    telefono=cliente_tel,
-                    estado_registro=1
-                )
-                db.add(nuevo_cli)
-                db.flush()
-                id_cliente = nuevo_cli.id_cliente
+            tipo_doc = "RUC" if len(cliente_doc) == 11 else "DNI"
+            cli_res = db.execute(
+                text("CALL sp_guardar_cliente(:tipo, :doc, :nom, :tel, NULL, NULL);"),
+                {"tipo": tipo_doc, "doc": cliente_doc, "nom": cliente_nombre, "tel": cliente_tel}
+            ).fetchone()
+            if cli_res and cli_res[0]:
+                id_cliente = cli_res[0]
 
-        nueva_venta = models.Venta(
-            correlativo=correlativo,
-            total=total_venta,
-            descuento_total=round(descuento_total, 2),
-            metodo_pago=data.get("metodo_pago", "Efectivo"),
-            id_usuario=id_usuario,
-            id_sede=id_sede,
-            id_cliente=id_cliente,
-            cliente_nombre=cliente_nombre,
-            cliente_doc=cliente_doc
-        )
-        db.add(nueva_venta)
-        db.flush() 
-        
-        # Guardamos los items de la venta y descontamos el stock en la sede del usuario
-        for item in detalles_procesados:
-            producto = item["producto"]
-            inventario = item["inventario"]
-            cantidad = item["cantidad"]
-
-            # Restar stock
-            inventario.stock_actual -= cantidad
-            
-            # Crear detalle
-            nuevo_detalle = models.DetalleVenta(
-                id_venta=nueva_venta.id_venta,
-                id_producto=producto.id_producto,
-                cantidad=cantidad,
-                precio_unitario=item["precio_unitario"],
-                descuento_unitario=item["descuento_unitario"],
-                subtotal=item["subtotal"]
-            )
-            db.add(nuevo_detalle)
-            
-            # Registrar salida en almacén de esta sede
-            movimiento = models.MovimientoAlmacen(
-                id_producto=producto.id_producto,
-                id_sede=id_sede,
-                tipo='SALIDA',
-                cantidad=-cantidad,
-                id_usuario=id_usuario,
-                observacion=f"Venta ticket {correlativo}"
-            )
-            db.add(movimiento)
-            
+        # 2. Procesar venta atómica mediante Stored Procedure (Valida stock, descuenta inventario, inserta venta y kardex)
+        sp_res = db.execute(
+            text("""
+                CALL sp_procesar_venta(
+                    :id_usuario, :id_sede, :id_cliente, :cliente_nombre, :cliente_doc,
+                    :correlativo, :total, :descuento_total, :metodo_pago, CAST(:detalles AS jsonb),
+                    NULL, NULL
+                );
+            """),
+            {
+                "id_usuario": id_usuario,
+                "id_sede": id_sede,
+                "id_cliente": id_cliente,
+                "cliente_nombre": cliente_nombre,
+                "cliente_doc": cliente_doc,
+                "correlativo": correlativo,
+                "total": total_venta,
+                "descuento_total": descuento_total,
+                "metodo_pago": data.get("metodo_pago", "Efectivo"),
+                "detalles": json.dumps(detalles_sp)
+            }
+        ).fetchone()
         db.commit()
-        id_v = nueva_venta.id_venta
+
+        id_v = sp_res[0] if sp_res else None
         
         sede = usuario.sede
         sede_nom = sede.nombre if sede else "Sede Principal"
@@ -170,19 +110,20 @@ def create_venta():
         # Emisión de Comprobante Electrónico SUNAT
         items_para_sunat = [
             {
-                "id_producto": item["producto"].id_producto,
-                "nombre": item["producto"].nombre,
-                "cantidad": item["cantidad"],
-                "precio_unitario": item["precio_unitario"],
-                "descuento_unitario": item["descuento_unitario"]
+                "id_producto": det["id_producto"],
+                "nombre": det.get("nombre") or f"Producto {det['id_producto']}",
+                "cantidad": det["cantidad"],
+                "precio_unitario": det["precio_unitario"],
+                "descuento_unitario": det.get("descuento_unitario", 0.0)
             }
-            for item in detalles_procesados
+            for det in detalles
         ]
+        metodo_pago_val = data.get("metodo_pago", "Efectivo")
         sunat_res = emitir_comprobante_sunat({
             "cliente_doc": cliente_doc,
             "cliente_nombre": cliente_nombre,
             "cliente_telefono": cliente_tel,
-            "metodo_pago": nueva_venta.metodo_pago,
+            "metodo_pago": metodo_pago_val,
             "detalles": items_para_sunat
         })
 
@@ -191,7 +132,7 @@ def create_venta():
             "id_venta": id_v,
             "correlativo": correlativo,
             "total": total_venta,
-            "metodo_pago": nueva_venta.metodo_pago,
+            "metodo_pago": metodo_pago_val,
             "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "sede_nombre": sede_nom,
             "sede_direccion": sede_dir,
@@ -416,4 +357,25 @@ def get_detalle_venta(id_venta):
         return jsonify(data), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+# Anular venta y devolver stock al inventario mediante Stored Procedure
+@ventas_bp.route("/api/ventas/<int:id_venta>/anular", methods=["POST"])
+def anular_venta(id_venta):
+    data = request.json or {}
+    id_usuario = data.get("id_usuario") or 1
+    motivo = data.get("motivo", "Anulación solicitada por el usuario")
+
+    db = get_db()
+    try:
+        res = db.execute(
+            text("CALL sp_anular_venta(:p_id_venta, :p_id_usuario, :p_motivo, NULL);"),
+            {"p_id_venta": id_venta, "p_id_usuario": id_usuario, "p_motivo": motivo}
+        ).fetchone()
+        db.commit()
+        mensaje = res[0] if res else "Venta anulada correctamente"
+        return jsonify({"message": mensaje, "id_venta": id_venta}), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 400
+
 
