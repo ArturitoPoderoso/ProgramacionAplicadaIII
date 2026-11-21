@@ -142,14 +142,7 @@ def get_compras():
         search = request.args.get("search", type=str)
 
         rows = db.execute(
-            text("""
-                SELECT id_orden_compra, correlativo, id_proveedor, proveedor_nombre,
-                       proveedor_ruc, proveedor_telefono, proveedor_contacto,
-                       id_sede, sede_nombre, id_usuario, usuario_nombre,
-                       fecha_emision, fecha_esperada, fecha_recepcion, estado,
-                       total, observacion, total_items, total_unidades
-                FROM fn_listar_compras(:p_id_sede, :p_estado, :p_search)
-            """),
+            text("SELECT * FROM fn_listar_compras(:p_id_sede, :p_estado, :p_search)"),
             {
                 "p_id_sede": id_sede if id_sede else None,
                 "p_estado": estado_filtro if estado_filtro else None,
@@ -213,14 +206,7 @@ def get_detalle_compra(id_orden):
     db = get_db()
     try:
         cab = db.execute(
-            text("""
-                SELECT id_orden_compra, correlativo, id_proveedor, proveedor_nombre,
-                       proveedor_ruc, proveedor_telefono, proveedor_correo, proveedor_contacto,
-                       proveedor_direccion, id_sede, sede_nombre, sede_direccion,
-                       id_usuario, usuario_nombre, fecha_emision, fecha_esperada,
-                       fecha_recepcion, estado, total, observacion
-                FROM fn_obtener_compra_cabecera(:id_orden)
-            """),
+            text("SELECT * FROM fn_obtener_compra_cabecera(:id_orden)"),
             {"id_orden": id_orden}
         ).fetchone()
 
@@ -228,11 +214,7 @@ def get_detalle_compra(id_orden):
             return jsonify({"error": "Orden de compra no encontrada."}), 404
 
         det_rows = db.execute(
-            text("""
-                SELECT id_detalle_oc, id_producto, codigo_producto, nombre_producto,
-                       cantidad_solicitada, cantidad_recibida, precio_unitario, subtotal
-                FROM fn_obtener_compra_detalle(:id_orden)
-            """),
+            text("SELECT * FROM fn_obtener_compra_detalle(:id_orden)"),
             {"id_orden": id_orden}
         ).fetchall()
 

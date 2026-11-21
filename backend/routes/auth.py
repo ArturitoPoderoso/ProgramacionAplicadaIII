@@ -17,7 +17,7 @@ def login():
     try:
         db = get_db()
         user = db.execute(
-            text("SELECT id_usuario, nombre_usuario, clave, nombres, apellidos, dni, id_sede, sede_nombre, estado_registro, roles FROM fn_autenticar_usuario(:p_username)"),
+            text("SELECT * FROM fn_autenticar_usuario(:p_username)"),
             {"p_username": dni}
         ).fetchone()
 

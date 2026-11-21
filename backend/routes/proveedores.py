@@ -17,12 +17,7 @@ def get_proveedores():
         id_sede = int(id_sede_param) if id_sede_param and str(id_sede_param).isdigit() else None
 
         rows = db.execute(
-            text("""
-                SELECT id_proveedor, id_sede, sede_nombre, ruc, razon_social,
-                       nombre_contacto, telefono, correo, direccion, condiciones_pago,
-                       total_productos, total_ordenes, calificacion_promedio, fecha_registro
-                FROM fn_listar_proveedores(:p_id_sede)
-            """),
+            text("SELECT * FROM fn_listar_proveedores(:p_id_sede)"),
             {"p_id_sede": id_sede}
         ).fetchall()
 
@@ -61,12 +56,7 @@ def get_proveedor(id_proveedor):
     db = get_db()
     try:
         p = db.execute(
-            text("""
-                SELECT id_proveedor, id_sede, sede_nombre, ruc, razon_social,
-                       nombre_contacto, telefono, correo, direccion, condiciones_pago,
-                       total_productos, total_ordenes, fecha_registro
-                FROM fn_obtener_proveedor(:id_proveedor)
-            """),
+            text("SELECT * FROM fn_obtener_proveedor(:id_proveedor)"),
             {"id_proveedor": id_proveedor}
         ).fetchone()
 
@@ -255,11 +245,7 @@ def get_catalogo_proveedor(id_proveedor):
     db = get_db()
     try:
         rows = db.execute(
-            text("""
-                SELECT id_proveedor_producto, id_producto, codigo_producto, nombre_producto,
-                       precio_pactado, plazo_entrega_dias, es_principal
-                FROM fn_catalogo_proveedor(:id_proveedor)
-            """),
+            text("SELECT * FROM fn_catalogo_proveedor(:id_proveedor)"),
             {"id_proveedor": id_proveedor}
         ).fetchall()
 

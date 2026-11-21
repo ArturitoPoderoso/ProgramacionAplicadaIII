@@ -9,7 +9,7 @@ users_bp = Blueprint("users", __name__)
 def get_sedes():
     db = get_db()
     try:
-        rows = db.execute(text("SELECT id_sede, nombre, direccion, telefono FROM fn_listar_sedes()")).fetchall()
+        rows = db.execute(text("SELECT * FROM fn_listar_sedes()")).fetchall()
         return jsonify([{
             "id_sede": s.id_sede,
             "nombre": s.nombre,
@@ -30,12 +30,7 @@ def get_users():
     db = get_db()
     try:
         rows = db.execute(
-            text("""
-                SELECT id_usuario, nombre_usuario, nombres, apellidos, correo_electronico,
-                       celular, dni, genero, id_sede, sede_nombre, ultimo_acceso,
-                       estado_registro, roles
-                FROM fn_listar_usuarios()
-            """)
+            text("SELECT * FROM fn_listar_usuarios()")
         ).fetchall()
 
         resultado = []

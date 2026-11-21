@@ -183,13 +183,7 @@ def get_ventas():
 
         # Invocación de la función almacenada fn_listar_ventas
         rows = db.execute(
-            text("""
-                SELECT id_venta, correlativo, total, descuento_total, metodo_pago,
-                       id_usuario, usuario_nombre, id_sede, sede_nombre,
-                       id_cliente, cliente_nombre, cliente_doc, fecha_venta,
-                       estado_registro, total_items, total_unidades
-                FROM fn_listar_ventas(:p_id_sede, :p_id_usuario, :p_fecha_inicio, :p_fecha_fin, :p_search)
-            """),
+            text("SELECT * FROM fn_listar_ventas(:p_id_sede, :p_id_usuario, :p_fecha_inicio, :p_fecha_fin, :p_search)"),
             {
                 "p_id_sede": sede_id if sede_id else None,
                 "p_id_usuario": vendedor_id if vendedor_id else None,
@@ -268,12 +262,7 @@ def get_detalle_venta(id_venta):
     db = get_db()
     try:
         cab = db.execute(
-            text("""
-                SELECT id_venta, correlativo, total, descuento_total, metodo_pago,
-                       id_usuario, usuario_nombre, id_sede, sede_nombre, sede_direccion,
-                       id_cliente, cliente_nombre, cliente_doc, fecha_venta, estado_registro
-                FROM fn_obtener_venta_cabecera(:id_venta)
-            """),
+            text("SELECT * FROM fn_obtener_venta_cabecera(:id_venta)"),
             {"id_venta": id_venta}
         ).fetchone()
 
@@ -281,11 +270,7 @@ def get_detalle_venta(id_venta):
             return jsonify({"error": "Venta no encontrada"}), 404
 
         det_rows = db.execute(
-            text("""
-                SELECT id_detalle, id_producto, codigo_producto, producto_nombre,
-                       cantidad, precio_unitario, descuento_unitario, subtotal
-                FROM fn_obtener_venta_detalle(:id_venta)
-            """),
+            text("SELECT * FROM fn_obtener_venta_detalle(:id_venta)"),
             {"id_venta": id_venta}
         ).fetchall()
 

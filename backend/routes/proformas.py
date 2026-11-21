@@ -95,12 +95,7 @@ def get_proformas():
         search = request.args.get("search", "").strip()
 
         rows = db.execute(
-            text("""
-                SELECT id_proforma, correlativo, fecha_emision, validez_dias,
-                       cliente_nombre, cliente_doc, total, id_usuario, usuario_nombre,
-                       id_sede, sede_nombre, id_cliente
-                FROM fn_listar_proformas(:p_id_sede, :p_search)
-            """),
+            text("SELECT * FROM fn_listar_proformas(:p_id_sede, :p_search)"),
             {
                 "p_id_sede": sede_id if sede_id else None,
                 "p_search": search if search else None
@@ -134,12 +129,7 @@ def get_detalle_proforma(id_proforma):
     db = get_db()
     try:
         cab = db.execute(
-            text("""
-                SELECT id_proforma, correlativo, fecha_emision, validez_dias,
-                       cliente_nombre, cliente_doc, total, id_usuario, usuario_nombre,
-                       id_sede, sede_nombre, sede_direccion, id_cliente
-                FROM fn_obtener_proforma_cabecera(:id_proforma)
-            """),
+            text("SELECT * FROM fn_obtener_proforma_cabecera(:id_proforma)"),
             {"id_proforma": id_proforma}
         ).fetchone()
 
@@ -147,11 +137,7 @@ def get_detalle_proforma(id_proforma):
             return jsonify({"error": "Proforma no encontrada"}), 404
 
         det_rows = db.execute(
-            text("""
-                SELECT id_detalle_proforma, id_producto, codigo_producto, nombre_producto,
-                       cantidad, precio_unitario, subtotal
-                FROM fn_obtener_proforma_detalle(:id_proforma)
-            """),
+            text("SELECT * FROM fn_obtener_proforma_detalle(:id_proforma)"),
             {"id_proforma": id_proforma}
         ).fetchall()
 

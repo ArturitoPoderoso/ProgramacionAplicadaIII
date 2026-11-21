@@ -14,7 +14,7 @@ def get_clientes():
         limit = request.args.get("limit", default=20, type=int)
 
         rows = db.execute(
-            text("SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono, fecha_registro FROM fn_listar_clientes(:p_search)"),
+            text("SELECT * FROM fn_listar_clientes(:p_search)"),
             {"p_search": search if search else None}
         ).fetchall()
 
@@ -56,7 +56,7 @@ def buscar_cliente_por_doc(doc):
     try:
         doc_limpio = str(doc).strip()
         row = db.execute(
-            text("SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono FROM fn_buscar_cliente(:criterio)"),
+            text("SELECT * FROM fn_buscar_cliente(:criterio)"),
             {"criterio": doc_limpio}
         ).fetchone()
 
@@ -82,7 +82,7 @@ def get_cliente(id_cliente):
     db = get_db()
     try:
         row = db.execute(
-            text("SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono, fecha_registro FROM fn_obtener_cliente(:id)"),
+            text("SELECT * FROM fn_obtener_cliente(:id)"),
             {"id": id_cliente}
         ).fetchone()
 

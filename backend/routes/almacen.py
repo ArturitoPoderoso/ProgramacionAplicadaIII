@@ -39,17 +39,8 @@ def handle_categorias():
 
     # GET
     try:
-        rows = db.execute(
-            text("SELECT id_categoria, nombre, descripcion, id_padre FROM fn_listar_categorias()")
-        ).fetchall()
-
-        return jsonify([{
-            "id_categoria": r.id_categoria,
-            "nombre": r.nombre,
-            "descripcion": r.descripcion or "",
-            "id_padre": r.id_padre
-        } for r in rows]), 200
-
+        rows = db.execute(text("SELECT * FROM fn_listar_categorias()")).mappings().all()
+        return jsonify([dict(r) for r in rows]), 200
     except Exception as e:
         return jsonify({"error": f"Error al listar categorías: {str(e)}"}), 500
 
@@ -119,17 +110,11 @@ def subcategorias():
     try:
         id_cat = request.args.get("id_categoria", type=int)
         rows = db.execute(
-            text("SELECT id_subcategoria, nombre, descripcion, id_categoria, categoria_nombre FROM fn_listar_subcategorias(:id_cat)"),
+            text("SELECT * FROM fn_listar_subcategorias(:id_cat)"),
             {"id_cat": id_cat if id_cat else None}
-        ).fetchall()
+        ).mappings().all()
 
-        return jsonify([{
-            "id_subcategoria": r.id_subcategoria,
-            "nombre": r.nombre,
-            "descripcion": r.descripcion or "",
-            "id_categoria": r.id_categoria,
-            "categoria_nombre": r.categoria_nombre
-        } for r in rows]), 200
+        return jsonify([dict(r) for r in rows]), 200
 
     except Exception as e:
         return jsonify({"error": f"Error al listar subcategorías: {str(e)}"}), 500
@@ -195,12 +180,7 @@ def get_productos():
     db = get_db()
     try:
         rows = db.execute(
-            text("""
-                SELECT id_producto, codigo_producto, nombre, descripcion,
-                       precio_venta, precio_compra, stock_actual, stock_minimo,
-                       categoria, id_categoria, id_subcategoria, sede_id
-                FROM fn_listar_productos_sede(:sede_id)
-            """),
+            text("SELECT * FROM fn_listar_productos_sede(:sede_id)"),
             {"sede_id": sede_id}
         ).fetchall()
 

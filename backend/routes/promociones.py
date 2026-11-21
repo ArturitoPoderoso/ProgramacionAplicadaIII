@@ -12,13 +12,7 @@ def get_promociones():
     try:
         sede_id = request.args.get("sede_id", type=int)
         rows = db.execute(
-            text("""
-                SELECT id_promocion, nombre, tipo_descuento, valor, aplica_a,
-                       id_sede, sede_nombre, id_categoria, categoria_nombre,
-                       id_producto, producto_nombre, fecha_inicio, fecha_fin,
-                       estado_registro, creador
-                FROM fn_listar_promociones(:sede_id)
-            """),
+            text("SELECT * FROM fn_listar_promociones(:sede_id)"),
             {"sede_id": sede_id if sede_id else None}
         ).fetchall()
 
@@ -54,12 +48,7 @@ def get_promociones_activas():
         today_str = datetime.now().strftime("%Y-%m-%d")
 
         rows = db.execute(
-            text("""
-                SELECT id_promocion, nombre, tipo_descuento, valor, aplica_a,
-                       id_sede, sede_nombre, id_categoria, categoria_nombre,
-                       id_producto, producto_nombre, fecha_inicio, fecha_fin
-                FROM fn_listar_promociones_activas(:sede_id, :today)
-            """),
+            text("SELECT * FROM fn_listar_promociones_activas(:sede_id, :today)"),
             {"sede_id": sede_id, "today": today_str}
         ).fetchall()
 
@@ -155,7 +144,7 @@ def autorizar_supervisor():
             return jsonify({"error": "Usuario y contraseña son requeridos"}), 400
 
         user = db.execute(
-            text("SELECT id_usuario, nombre_usuario, clave, nombres, apellidos, roles FROM fn_autenticar_usuario(:user)"),
+            text("SELECT * FROM fn_autenticar_usuario(:user)"),
             {"user": username}
         ).fetchone()
 
