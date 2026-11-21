@@ -1161,9 +1161,9 @@ BEGIN
         pp.id_producto,
         p.codigo_producto,
         p.nombre AS nombre_producto,
-        pp.precio_pactado,
-        COALESCE(pp.plazo_entrega_dias, 1),
-        COALESCE(pp.es_principal, 0 = 1)
+        COALESCE(pp.precio_compra, 0.0)::DOUBLE PRECISION AS precio_pactado,
+        1 AS plazo_entrega_dias,
+        FALSE AS es_principal
     FROM proveedor_productos pp
     JOIN productos p ON p.id_producto = pp.id_producto
     WHERE pp.id_proveedor = p_id_proveedor AND pp.estado_registro = 1;
