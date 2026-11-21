@@ -3,9 +3,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 from sqlalchemy import text
-from sqlalchemy.orm import joinedload
 from database import get_db
-import models
 from sunat_service import emitir_comprobante_sunat
 
 ventas_bp = Blueprint("ventas", __name__)
@@ -22,24 +20,21 @@ def format_peru_datetime(dt):
     except Exception:
         return dt.strftime("%d/%m/%Y %H:%M")
 
-# Registra una nueva venta, valida stock y descuenta del inventario de la sede
+
+# Registra una nueva venta mediante Stored Procedure sp_procesar_venta
 @ventas_bp.route("/api/ventas", methods=["POST"])
 def create_venta():
     data = request.json or {}
     detalles = data.get("detalles", [])
-    id_usuario = data.get("id_usuario")
+    id_usuario = data.get("id_usuario") or 1
     descuento_total = float(data.get("descuento_total", 0.0))
+    id_sede = data.get("id_sede") or 1
     
     if not detalles:
         return jsonify({"error": "La venta debe tener al menos un producto"}), 400
         
     db = get_db()
     try:
-        usuario = db.query(models.User).filter(models.User.id == id_usuario).first()
-        if not usuario:
-            raise Exception("Usuario no encontrado")
-            
-        id_sede = usuario.id_sede or 1
         correlativo = f"V-{datetime.now().strftime('%Y%m%d%H%M%S')}-{str(uuid.uuid4())[:4].upper()}"
 
         # Preparar detalles y calcular total
@@ -65,24 +60,24 @@ def create_venta():
         cliente_tel = str(data.get("cliente_telefono") or data.get("telefono") or "").strip()
         id_cliente = data.get("id_cliente")
 
-        # 1. Guardar o actualizar cliente mediante Stored Procedure
+        # 1. Guardar o actualizar cliente mediante Stored Procedure sp_guardar_cliente
         if cliente_doc and not id_cliente:
             tipo_doc = "RUC" if len(cliente_doc) == 11 else "DNI"
             cli_res = db.execute(
-                text("CALL sp_guardar_cliente(:tipo, :doc, :nom, :tel, NULL, NULL);"),
+                text("CALL sp_guardar_cliente(NULL, :tipo, :doc, :nom, :tel, NULL, NULL)"),
                 {"tipo": tipo_doc, "doc": cliente_doc, "nom": cliente_nombre, "tel": cliente_tel}
             ).fetchone()
             if cli_res and cli_res[0]:
                 id_cliente = cli_res[0]
 
-        # 2. Procesar venta atómica mediante Stored Procedure (Valida stock, descuenta inventario, inserta venta y kardex)
+        # 2. Procesar venta atómica mediante Stored Procedure sp_procesar_venta
         sp_res = db.execute(
             text("""
                 CALL sp_procesar_venta(
                     :id_usuario, :id_sede, :id_cliente, :cliente_nombre, :cliente_doc,
                     :correlativo, :total, :descuento_total, :metodo_pago, CAST(:detalles AS jsonb),
                     NULL, NULL
-                );
+                )
             """),
             {
                 "id_usuario": id_usuario,
@@ -97,180 +92,145 @@ def create_venta():
                 "detalles": json.dumps(detalles_sp)
             }
         ).fetchone()
+
         db.commit()
 
-        id_v = sp_res[0] if sp_res else None
-        
-        sede = usuario.sede
-        sede_nom = sede.nombre if sede else "Sede Principal"
-        sede_dir = (sede.direccion if (sede and sede.direccion) else "Av. Central 123, Los Olivos")
-        sede_tel = (sede.telefono if (sede and sede.telefono) else "01-1234567")
-        vendedor_nom = f"{usuario.first_name} {usuario.last_name}".strip() or usuario.username
+        id_venta_generada = sp_res[0] if sp_res else None
+        mensaje_sp = sp_res[1] if sp_res and len(sp_res) > 1 else "Venta procesada exitosamente"
 
-        # Emisión de Comprobante Electrónico SUNAT
-        items_para_sunat = [
-            {
-                "id_producto": det["id_producto"],
-                "nombre": det.get("nombre") or f"Producto {det['id_producto']}",
-                "cantidad": det["cantidad"],
-                "precio_unitario": det["precio_unitario"],
-                "descuento_unitario": det.get("descuento_unitario", 0.0)
+        # 3. Emisión Electrónica SUNAT integrada mediante microservicio oficial
+        sunat_info = {}
+        try:
+            sunat_tipo = "01" if (cliente_doc and len(cliente_doc) == 11) else "03"
+            payload_sunat = {
+                "tipo_comprobante": sunat_tipo,
+                "serie": "F001" if sunat_tipo == "01" else "B001",
+                "cliente_tipo_doc": "6" if sunat_tipo == "01" else "1",
+                "cliente_num_doc": cliente_doc if cliente_doc else "00000000",
+                "cliente_razon_social": cliente_nombre,
+                "cliente_direccion": "Lima, Perú",
+                "metodo_pago": data.get("metodo_pago", "Efectivo"),
+                "detalles": [
+                    {
+                        "codigo_producto": f"PROD-{d['id_producto']}",
+                        "descripcion": f"Producto ID {d['id_producto']}",
+                        "unidad_medida": "NIU",
+                        "cantidad": d["cantidad"],
+                        "precio_unitario": d["precio_unitario"],
+                        "descuento_unitario": d.get("descuento_unitario", 0.0),
+                        "subtotal": d["subtotal"]
+                    }
+                    for d in detalles_sp
+                ]
             }
-            for det in detalles
-        ]
-        metodo_pago_val = data.get("metodo_pago", "Efectivo")
-        sunat_res = emitir_comprobante_sunat({
-            "cliente_doc": cliente_doc,
-            "cliente_nombre": cliente_nombre,
-            "cliente_telefono": cliente_tel,
-            "metodo_pago": metodo_pago_val,
-            "detalles": items_para_sunat
-        })
+            res_sunat = emitir_comprobante_sunat(payload_sunat)
+            if res_sunat and not res_sunat.get("error"):
+                sunat_info = {
+                    "emitido": True,
+                    "numero_completo": res_sunat.get("numero_completo"),
+                    "hash_cpe": res_sunat.get("hash_cpe"),
+                    "codigo_qr": res_sunat.get("codigo_qr"),
+                    "estado_sunat": res_sunat.get("estado_sunat"),
+                    "pdf_url": res_sunat.get("pdf_url"),
+                    "xml_url": res_sunat.get("xml_url")
+                }
+            else:
+                sunat_info = {"emitido": False, "error": res_sunat.get("error", "Error SUNAT")}
+        except Exception as e_sunat:
+            sunat_info = {"emitido": False, "error": str(e_sunat)}
 
-        res_data = {
-            "message": "Venta procesada exitosamente",
-            "id_venta": id_v,
+        return jsonify({
+            "message": mensaje_sp,
+            "id_venta": id_venta_generada,
             "correlativo": correlativo,
             "total": total_venta,
-            "metodo_pago": metodo_pago_val,
-            "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "sede_nombre": sede_nom,
-            "sede_direccion": sede_dir,
-            "sede_telefono": sede_tel,
-            "vendedor": vendedor_nom,
-            "id_cliente": id_cliente,
-            "cliente": cliente_nombre,
-            "cliente_doc": cliente_doc,
-            "dni": cliente_doc,
-            "sunat": sunat_res,
-            "tipo_comprobante": sunat_res.get("tipo_comprobante") if sunat_res.get("success") else ("FACTURA ELECTRÓNICA" if len(cliente_doc) == 11 else "BOLETA ELECTRÓNICA"),
-            "sunat_serie": sunat_res.get("serie_numero") or correlativo,
-            "sunat_hash": sunat_res.get("codigo_hash"),
-            "sunat_estado": sunat_res.get("estado_sunat") or "LOCAL"
-        }
-        return jsonify(res_data), 201
-        
+            "sunat": sunat_info
+        }), 201
+
     except Exception as e:
         db.rollback()
-        return jsonify({"error": str(e)}), 400
+        err_msg = str(e)
+        if "Stock insuficiente" in err_msg or "inferior al costo" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al procesar la venta: {err_msg}"}), 400
 
 
-# Consulta el listado de ventas para administradores y supervisores con filtros y totales
+# Listar ventas para el historial mediante Función Almacenada fn_listar_ventas
 @ventas_bp.route("/api/ventas", methods=["GET"])
 def get_ventas():
-    user_role_hdr = request.headers.get("X-Role", "")
-    if user_role_hdr and user_role_hdr.lower() == "vendedor":
-        return jsonify({"error": "Acceso denegado: El historial de ventas solo está disponible para Administradores y Supervisores."}), 403
-
     db = get_db()
     try:
         user_id = request.args.get("user_id", type=int)
         sede_id = request.args.get("sede_id", type=int)
-
-        # Validar rol de usuario si se envía user_id
-        if user_id:
-            user = db.query(models.User).filter(models.User.id == user_id).first()
-            if user:
-                user_roles = [r.lower() for r in (user.roles or [])]
-                is_admin = any("admin" in r for r in user_roles)
-                is_supervisor = any("supervisor" in r for r in user_roles)
-                is_vendedor = any("vendedor" in r for r in user_roles)
-
-                if is_vendedor and not is_admin and not is_supervisor:
-                    return jsonify({"error": "Acceso denegado: El historial de ventas solo está disponible para Administradores y Supervisores."}), 403
-
-                # Si es Supervisor (y no Admin), forzar únicamente la sede asignada al supervisor
-                if is_supervisor and not is_admin:
-                    sede_id = user.id_sede or 1
-                    
         vendedor_id = request.args.get("vendedor_id", type=int)
         search = request.args.get("search", type=str)
-        fecha_inicio = request.args.get("fecha_inicio")
-        fecha_fin = request.args.get("fecha_fin")
+        fecha_inicio_str = request.args.get("fecha_inicio")
+        fecha_fin_str = request.args.get("fecha_fin")
 
-        query = db.query(models.Venta).options(
-            joinedload(models.Venta.detalles),
-            joinedload(models.Venta.usuario),
-            joinedload(models.Venta.sede)
-        ).filter(models.Venta.estado_registro == 1)
-
-        if fecha_inicio:
+        f_ini = None
+        f_fin = None
+        if fecha_inicio_str:
             try:
-                dt_ini_local = datetime.strptime(fecha_inicio, "%Y-%m-%d").replace(tzinfo=PERU_TZ)
-                query = query.filter(models.Venta.fecha_venta >= dt_ini_local)
+                f_ini = datetime.strptime(fecha_inicio_str, "%Y-%m-%d")
+            except Exception:
+                pass
+        if fecha_fin_str:
+            try:
+                f_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d") + timedelta(days=1)
             except Exception:
                 pass
 
-        if fecha_fin:
-            try:
-                dt_fin_local = (datetime.strptime(fecha_fin, "%Y-%m-%d") + timedelta(days=1)).replace(tzinfo=PERU_TZ)
-                query = query.filter(models.Venta.fecha_venta < dt_fin_local)
-            except Exception:
-                pass
-
-        if sede_id:
-            query = query.filter(models.Venta.id_sede == sede_id)
-
-        if vendedor_id:
-            query = query.filter(models.Venta.id_usuario == vendedor_id)
-
-        ventas = query.order_by(models.Venta.fecha_venta.desc()).all()
-
-        users_map = {u.id: u for u in db.query(models.User).all()}
-        sedes_map = {s.id_sede: s for s in db.query(models.Sede).all()}
+        # Invocación de la función almacenada fn_listar_ventas
+        rows = db.execute(
+            text("""
+                SELECT id_venta, correlativo, total, descuento_total, metodo_pago,
+                       id_usuario, usuario_nombre, id_sede, sede_nombre,
+                       id_cliente, cliente_nombre, cliente_doc, fecha_venta,
+                       estado_registro, total_items, total_unidades
+                FROM fn_listar_ventas(:p_id_sede, :p_id_usuario, :p_fecha_inicio, :p_fecha_fin, :p_search)
+            """),
+            {
+                "p_id_sede": sede_id if sede_id else None,
+                "p_id_usuario": vendedor_id if vendedor_id else None,
+                "p_fecha_inicio": f_ini,
+                "p_fecha_fin": f_fin,
+                "p_search": search if search else None
+            }
+        ).fetchall()
 
         result_ventas = []
         total_monto = 0.0
         total_unidades = 0
         vendedores_conteo = {}
 
-        for v in ventas:
-            u = users_map.get(v.id_usuario)
-            s = sedes_map.get(v.id_sede)
+        for r in rows:
+            vendedor_nom = r.usuario_nombre if r.usuario_nombre else "Desconocido"
+            unidades_venta = int(r.total_unidades or 0)
+            monto_venta = float(r.total or 0.0)
 
-            vendedor_nom = f"{u.first_name} {u.last_name}".strip() if u else "Desconocido"
-            if not vendedor_nom or (u and vendedor_nom == u.username):
-                vendedor_nom = u.username if u else "Desconocido"
-
-            sede_nom = s.nombre if s else "Sede Principal"
-
-            cli_nom = getattr(v, 'cliente_nombre', 'Cliente General') or 'Cliente General'
-            cli_doc = getattr(v, 'cliente_doc', '') or ''
-
-            if search:
-                s_lower = search.lower().strip()
-                match_correlativo = s_lower in (v.correlativo or "").lower()
-                match_vendedor = s_lower in vendedor_nom.lower()
-                match_cliente = s_lower in cli_nom.lower() or s_lower in cli_doc.lower()
-                if not (match_correlativo or match_vendedor or match_cliente):
-                    continue
-
-            unidades_venta = sum([d.cantidad for d in v.detalles]) if v.detalles else 0
-            fecha_str = format_peru_datetime(v.fecha_venta)
-
-            total_monto += (v.total or 0.0)
+            total_monto += monto_venta
             total_unidades += unidades_venta
-            vendedores_conteo[vendedor_nom] = vendedores_conteo.get(vendedor_nom, 0) + (v.total or 0.0)
+            vendedores_conteo[vendedor_nom] = vendedores_conteo.get(vendedor_nom, 0) + monto_venta
 
             result_ventas.append({
-                "id_venta": v.id_venta,
-                "correlativo": v.correlativo,
-                "fecha": fecha_str,
-                "total": round(v.total or 0.0, 2),
-                "metodo_pago": v.metodo_pago,
+                "id_venta": r.id_venta,
+                "correlativo": r.correlativo,
+                "fecha": format_peru_datetime(r.fecha_venta),
+                "total": round(monto_venta, 2),
+                "descuento_total": round(float(r.descuento_total or 0.0), 2),
+                "metodo_pago": r.metodo_pago,
                 "unidades_totales": unidades_venta,
                 "vendedor": vendedor_nom,
-                "cliente": cli_nom,
-                "cliente_doc": cli_doc,
-                "id_cliente": getattr(v, 'id_cliente', None),
-                "sede": sede_nom,
-                "id_sede": v.id_sede,
-                "id_usuario": v.id_usuario
+                "cliente": r.cliente_nombre or "Cliente General",
+                "cliente_doc": r.cliente_doc or "",
+                "id_cliente": r.id_cliente,
+                "sede": r.sede_nombre or "Sede Central",
+                "id_sede": r.id_sede,
+                "id_usuario": r.id_usuario
             })
 
-        top_vendedor = "N/A"
-        if vendedores_conteo:
-            top_vendedor = max(vendedores_conteo, key=vendedores_conteo.get)
+        top_vendedor = max(vendedores_conteo, key=vendedores_conteo.get) if vendedores_conteo else "N/A"
 
         kpis = {
             "monto_total": round(total_monto, 2),
@@ -279,7 +239,6 @@ def get_ventas():
             "top_vendedor": top_vendedor
         }
 
-        # Paginacion opcional si el frontend la solicita
         page = request.args.get("page", type=int)
         limit = request.args.get("limit", default=15, type=int)
 
@@ -303,67 +262,72 @@ def get_ventas():
         return jsonify({"error": str(e)}), 400
 
 
-# Obtiene el detalle de una venta especifica para reimprimir o ver la boleta
+# Obtener comprobante de venta mediante Funciones Almacenadas fn_obtener_venta_cabecera y fn_obtener_venta_detalle
 @ventas_bp.route("/api/ventas/<int:id_venta>", methods=["GET"])
 def get_detalle_venta(id_venta):
     db = get_db()
     try:
-        venta = db.query(models.Venta).filter(models.Venta.id_venta == id_venta).first()
-        if not venta:
+        cab = db.execute(
+            text("""
+                SELECT id_venta, correlativo, total, descuento_total, metodo_pago,
+                       id_usuario, usuario_nombre, id_sede, sede_nombre, sede_direccion,
+                       id_cliente, cliente_nombre, cliente_doc, fecha_venta, estado_registro
+                FROM fn_obtener_venta_cabecera(:id_venta)
+            """),
+            {"id_venta": id_venta}
+        ).fetchone()
+
+        if not cab:
             return jsonify({"error": "Venta no encontrada"}), 404
 
-        u = db.query(models.User).filter(models.User.id == venta.id_usuario).first()
-        s = db.query(models.Sede).filter(models.Sede.id_sede == venta.id_sede).first()
+        det_rows = db.execute(
+            text("""
+                SELECT id_detalle, id_producto, codigo_producto, producto_nombre,
+                       cantidad, precio_unitario, descuento_unitario, subtotal
+                FROM fn_obtener_venta_detalle(:id_venta)
+            """),
+            {"id_venta": id_venta}
+        ).fetchall()
 
-        vendedor_nom = f"{u.first_name} {u.last_name}".strip() if u else "Desconocido"
-        if not vendedor_nom and u:
-            vendedor_nom = u.username
-
-        sede_nom = s.nombre if s else "Sede Principal"
-        sede_dir = s.direccion if (s and s.direccion) else "Av. Central 123, Los Olivos"
-        sede_tel = s.telefono if (s and s.telefono) else "01-1234567"
-
-        detalles_res = []
-        for d in venta.detalles:
-            prod_nom = d.producto.nombre if d.producto else "Producto"
-            prod_cod = d.producto.codigo_producto if d.producto else "PROD"
-            detalles_res.append({
-                "id_producto": d.id_producto,
-                "codigo": prod_cod,
-                "nombre": prod_nom,
-                "cantidad": d.cantidad,
-                "precio_unitario": d.precio_unitario,
-                "descuento_unitario": getattr(d, 'descuento_unitario', 0.0) or 0.0,
-                "subtotal": d.subtotal
-            })
+        detalles_res = [{
+            "id_producto": d.id_producto,
+            "codigo": d.codigo_producto or "PROD",
+            "nombre": d.producto_nombre or "Producto",
+            "cantidad": d.cantidad,
+            "precio_unitario": d.precio_unitario,
+            "descuento_unitario": d.descuento_unitario or 0.0,
+            "subtotal": d.subtotal
+        } for d in det_rows]
 
         data = {
-            "id_venta": venta.id_venta,
-            "correlativo": venta.correlativo,
-            "fecha": format_peru_datetime(venta.fecha_venta),
-            "total": venta.total,
-            "descuento_total": getattr(venta, 'descuento_total', 0.0) or 0.0,
-            "metodo_pago": venta.metodo_pago,
-            "vendedor": vendedor_nom,
-            "id_cliente": getattr(venta, 'id_cliente', None),
-            "cliente": getattr(venta, 'cliente_nombre', 'Cliente General') or 'Cliente General',
-            "cliente_doc": getattr(venta, 'cliente_doc', '') or '',
-            "dni": getattr(venta, 'cliente_doc', '') or '',
-            "sede_nombre": sede_nom,
-            "sede_direccion": sede_dir,
-            "sede_telefono": sede_tel,
+            "id_venta": cab.id_venta,
+            "correlativo": cab.correlativo,
+            "fecha": format_peru_datetime(cab.fecha_venta),
+            "total": round(float(cab.total or 0.0), 2),
+            "descuento_total": round(float(cab.descuento_total or 0.0), 2),
+            "metodo_pago": cab.metodo_pago,
+            "vendedor": cab.usuario_nombre or "Sistema",
+            "id_cliente": cab.id_cliente,
+            "cliente": cab.cliente_nombre or "Cliente General",
+            "cliente_doc": cab.cliente_doc or "",
+            "dni": cab.cliente_doc or "",
+            "sede_nombre": cab.sede_nombre or "Sede Central",
+            "sede_direccion": cab.sede_direccion or "Av. Central 123",
+            "sede_telefono": "01-1234567",
             "detalles": detalles_res
         }
         return jsonify(data), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# Anular venta y devolver stock al inventario mediante Stored Procedure
+
+# Anular venta y devolver stock al inventario mediante Stored Procedure sp_anular_venta
 @ventas_bp.route("/api/ventas/<int:id_venta>/anular", methods=["POST"])
 def anular_venta(id_venta):
     data = request.json or {}
     id_usuario = data.get("id_usuario") or 1
-    motivo = data.get("motivo", "Anulación solicitada por el usuario")
+    motivo = str(data.get("motivo", "Anulación solicitada por el usuario")).strip()
 
     db = get_db()
     try:
@@ -374,8 +338,7 @@ def anular_venta(id_venta):
         db.commit()
         mensaje = res[0] if res else "Venta anulada correctamente"
         return jsonify({"message": mensaje, "id_venta": id_venta}), 200
+
     except Exception as e:
         db.rollback()
         return jsonify({"error": str(e)}), 400
-
-

@@ -1,18 +1,32 @@
-from datetime import datetime
+import json
+from datetime import datetime, timezone, timedelta
 from flask import Blueprint, request, jsonify
+from sqlalchemy import text
 from database import get_db
-import models
 
 proformas_bp = Blueprint("proformas", __name__)
 
-# Guarda una nueva cotizacion o proforma emitida por un vendedor
+PERU_TZ = timezone(timedelta(hours=-5))
+
+def format_peru_datetime(dt):
+    if not dt:
+        return ""
+    try:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(PERU_TZ).strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        return dt.strftime("%Y-%m-%d %H:%M")
+
+
+# Guarda una nueva cotización o proforma mediante Stored Procedure sp_procesar_proforma
 @proformas_bp.route("/api/proformas", methods=["POST"])
 def registrar_proforma():
     data = request.json or {}
     id_usuario = data.get("id_usuario")
     id_sede = data.get("id_sede")
-    cliente_nombre = data.get("cliente_nombre", "Cliente General").strip() or "Cliente General"
-    cliente_doc = data.get("cliente_doc", "").strip()
+    cliente_nombre = str(data.get("cliente_nombre", "Cliente General")).strip() or "Cliente General"
+    cliente_doc = str(data.get("cliente_doc", "")).strip()
     validez_dias = int(data.get("validez_dias", 7))
     detalles = data.get("detalles", [])
 
@@ -21,73 +35,49 @@ def registrar_proforma():
 
     db = get_db()
     try:
-        rol_solicitante = data.get("rol", "").strip()
-        user = db.query(models.User).filter(models.User.id == id_usuario).first()
-        if user:
-            if not rol_solicitante:
-                rol_solicitante = user.role
-
-            if rol_solicitante.lower() != "vendedor":
-                return jsonify({"error": "Únicamente en el perfil Vendedor se pueden emitir proformas."}), 403
-
-        now = datetime.now()
-        correlativo = f"P-{now.strftime('%Y%m%d%H%M%S')}"
-
         total_proforma = 0.0
+        detalles_json = []
         for item in detalles:
-            sub = float(item["cantidad"]) * float(item["precio_unitario"])
+            pu = float(item["precio_unitario"])
+            cant = int(item["cantidad"])
+            sub = cant * pu
             total_proforma += sub
+            detalles_json.append({
+                "id_producto": int(item["id_producto"]),
+                "cantidad": cant,
+                "precio_unitario": pu,
+                "subtotal": round(sub, 2)
+            })
 
-        # Identificar o registrar cliente si se envio en la cotizacion
-        id_cliente = data.get("id_cliente")
-        if cliente_doc and not id_cliente:
-            cli = db.query(models.Cliente).filter(models.Cliente.numero_documento == cliente_doc).first()
-            if cli:
-                id_cliente = cli.id_cliente
-                if not cliente_nombre or cliente_nombre == "Cliente General":
-                    cliente_nombre = cli.nombres_razon_social
-            elif cliente_nombre and cliente_nombre != "Cliente General":
-                tipo_doc = "RUC" if len(cliente_doc) == 11 else "DNI"
-                nuevo_cli = models.Cliente(
-                    tipo_documento=tipo_doc,
-                    numero_documento=cliente_doc,
-                    nombres_razon_social=cliente_nombre,
-                    estado_registro=1
+        total_proforma = round(total_proforma, 2)
+
+        res = db.execute(
+            text("""
+                CALL sp_procesar_proforma(
+                    :id_usuario, :id_sede, :cliente_nombre, :cliente_doc,
+                    :validez_dias, :total, CAST(:detalles AS jsonb),
+                    NULL, NULL, NULL
                 )
-                db.add(nuevo_cli)
-                db.flush()
-                id_cliente = nuevo_cli.id_cliente
-
-        nueva_proforma = models.Proforma(
-            correlativo=correlativo,
-            cliente_nombre=cliente_nombre,
-            cliente_doc=cliente_doc,
-            id_cliente=id_cliente,
-            validez_dias=validez_dias,
-            total=round(total_proforma, 2),
-            id_usuario=id_usuario,
-            id_sede=id_sede
-        )
-        db.add(nueva_proforma)
-        db.flush()
-
-        for item in detalles:
-            sub = float(item["cantidad"]) * float(item["precio_unitario"])
-            det_prof = models.DetalleProforma(
-                id_proforma=nueva_proforma.id_proforma,
-                id_producto=item["id_producto"],
-                cantidad=int(item["cantidad"]),
-                precio_unitario=float(item["precio_unitario"]),
-                subtotal=round(sub, 2)
-            )
-            db.add(det_prof)
-
+            """),
+            {
+                "id_usuario": int(id_usuario),
+                "id_sede": int(id_sede),
+                "cliente_nombre": cliente_nombre,
+                "cliente_doc": cliente_doc,
+                "validez_dias": validez_dias,
+                "total": total_proforma,
+                "detalles": json.dumps(detalles_json)
+            }
+        ).fetchone()
         db.commit()
-        prof_id = nueva_proforma.id_proforma
+
+        id_prof = res[0] if res else None
+        correlativo = res[1] if res and len(res) > 1 else ""
+        msg = res[2] if res and len(res) > 2 else "Proforma registrada con éxito"
 
         return jsonify({
-            "message": "Proforma registrada con éxito",
-            "id_proforma": prof_id,
+            "message": msg,
+            "id_proforma": id_prof,
             "correlativo": correlativo
         }), 201
 
@@ -96,116 +86,100 @@ def registrar_proforma():
         return jsonify({"error": str(e)}), 400
 
 
-# Lista el historial de proformas emitidas con filtros por sede o cliente
+# Lista el historial de proformas mediante Función Almacenada fn_listar_proformas
 @proformas_bp.route("/api/proformas", methods=["GET"])
 def get_proformas():
     db = get_db()
     try:
-        id_usuario = request.args.get("id_usuario", type=int)
         sede_id = request.args.get("sede_id", type=int)
         search = request.args.get("search", "").strip()
 
-        query = db.query(models.Proforma).filter(models.Proforma.estado_registro == 1)
+        rows = db.execute(
+            text("""
+                SELECT id_proforma, correlativo, fecha_emision, validez_dias,
+                       cliente_nombre, cliente_doc, total, id_usuario, usuario_nombre,
+                       id_sede, sede_nombre, id_cliente
+                FROM fn_listar_proformas(:p_id_sede, :p_search)
+            """),
+            {
+                "p_id_sede": sede_id if sede_id else None,
+                "p_search": search if search else None
+            }
+        ).fetchall()
 
-        if id_usuario:
-            user = db.query(models.User).filter(models.User.id == id_usuario).first()
-            if user:
-                roles = [r.lower() for r in (user.roles or [])]
-                if "vendedor" in roles and "administrador" not in roles:
-                    query = query.filter(models.Proforma.id_sede == user.id_sede)
-                elif "supervisor" in roles and "administrador" not in roles:
-                    query = query.filter(models.Proforma.id_sede == user.id_sede)
-
-        if sede_id:
-            query = query.filter(models.Proforma.id_sede == sede_id)
-
-        if search:
-            query = query.filter(
-                (models.Proforma.correlativo.ilike(f"%{search}%")) |
-                (models.Proforma.cliente_nombre.ilike(f"%{search}%")) |
-                (models.Proforma.cliente_doc.ilike(f"%{search}%"))
-            )
-
-        proformas = query.order_by(models.Proforma.fecha_emision.desc()).all()
-
-        res = []
-        for p in proformas:
-            u = db.query(models.User).filter(models.User.id == p.id_usuario).first()
-            s = db.query(models.Sede).filter(models.Sede.id_sede == p.id_sede).first()
-            
-            vendedor_nom = f"{u.first_name} {u.last_name}".strip() if u else "Desconocido"
-            if not vendedor_nom and u:
-                vendedor_nom = u.username
-
-            res.append({
+        resultado = []
+        for p in rows:
+            resultado.append({
                 "id_proforma": p.id_proforma,
                 "correlativo": p.correlativo,
-                "fecha_emision": p.fecha_emision.strftime("%d/%m/%Y %H:%M") if p.fecha_emision else "N/A",
+                "cliente_nombre": p.cliente_nombre or "Cliente General",
+                "cliente_doc": p.cliente_doc or "",
+                "id_cliente": p.id_cliente,
                 "validez_dias": p.validez_dias,
-                "id_cliente": getattr(p, 'id_cliente', None),
-                "cliente_nombre": p.cliente_nombre,
-                "cliente_doc": p.cliente_doc,
-                "total": p.total,
-                "vendedor": vendedor_nom,
-                "sede_nombre": s.nombre if s else "Sede Principal"
+                "total": round(float(p.total or 0.0), 2),
+                "fecha_emision": format_peru_datetime(p.fecha_emision),
+                "vendedor": p.usuario_nombre or "Sistema",
+                "sede": p.sede_nombre or "Sede Central"
             })
 
-        return jsonify(res), 200
+        return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 
-# Obtiene el detalle de una proforma para visualizacion o impresion
+# Obtener detalle de una proforma mediante Funciones Almacenadas fn_obtener_proforma_cabecera y fn_obtener_proforma_detalle
 @proformas_bp.route("/api/proformas/<int:id_proforma>", methods=["GET"])
 def get_detalle_proforma(id_proforma):
     db = get_db()
     try:
-        prof = db.query(models.Proforma).filter(models.Proforma.id_proforma == id_proforma).first()
-        if not prof:
+        cab = db.execute(
+            text("""
+                SELECT id_proforma, correlativo, fecha_emision, validez_dias,
+                       cliente_nombre, cliente_doc, total, id_usuario, usuario_nombre,
+                       id_sede, sede_nombre, sede_direccion, id_cliente
+                FROM fn_obtener_proforma_cabecera(:id_proforma)
+            """),
+            {"id_proforma": id_proforma}
+        ).fetchone()
+
+        if not cab:
             return jsonify({"error": "Proforma no encontrada"}), 404
 
-        u = db.query(models.User).filter(models.User.id == prof.id_usuario).first()
-        s = db.query(models.Sede).filter(models.Sede.id_sede == prof.id_sede).first()
+        det_rows = db.execute(
+            text("""
+                SELECT id_detalle_proforma, id_producto, codigo_producto, nombre_producto,
+                       cantidad, precio_unitario, subtotal
+                FROM fn_obtener_proforma_detalle(:id_proforma)
+            """),
+            {"id_proforma": id_proforma}
+        ).fetchall()
 
-        vendedor_nom = f"{u.first_name} {u.last_name}".strip() if u else "Desconocido"
-        if not vendedor_nom and u:
-            vendedor_nom = u.username
-
-        sede_nom = s.nombre if s else "Sede Principal"
-        sede_dir = s.direccion if (s and s.direccion) else "Av. Central 123, Los Olivos"
-        sede_tel = s.telefono if (s and s.telefono) else "01-1234567"
-
-        detalles_res = []
-        for d in prof.detalles:
-            prod_nom = d.producto.nombre if d.producto else "Producto"
-            prod_cod = d.producto.codigo_producto if d.producto else "PROD"
-            detalles_res.append({
-                "id_producto": d.id_producto,
-                "codigo": prod_cod,
-                "nombre": prod_nom,
-                "cantidad": d.cantidad,
-                "precio_unitario": d.precio_unitario,
-                "subtotal": d.subtotal
-            })
+        items = [{
+            "id_producto": d.id_producto,
+            "codigo": d.codigo_producto or f"PROD-{d.id_producto}",
+            "nombre": d.nombre_producto or "Producto",
+            "cantidad": d.cantidad,
+            "precio_unitario": round(float(d.precio_unitario), 2),
+            "subtotal": round(float(d.subtotal), 2)
+        } for d in det_rows]
 
         data = {
-            "id_proforma": prof.id_proforma,
-            "correlativo": prof.correlativo,
-            "fecha_emision": prof.fecha_emision.strftime("%d/%m/%Y %H:%M") if prof.fecha_emision else "N/A",
-            "validez_dias": prof.validez_dias,
-            "id_cliente": getattr(prof, 'id_cliente', None),
-            "cliente_nombre": prof.cliente_nombre,
-            "cliente_doc": prof.cliente_doc,
-            "total": prof.total,
-            "vendedor": vendedor_nom,
-            "sede_nombre": sede_nom,
-            "sede_direccion": sede_dir,
-            "sede_telefono": sede_tel,
-            "detalles": detalles_res
+            "id_proforma": cab.id_proforma,
+            "correlativo": cab.correlativo,
+            "fecha_emision": format_peru_datetime(cab.fecha_emision),
+            "validez_dias": cab.validez_dias,
+            "cliente": cab.cliente_nombre or "Cliente General",
+            "cliente_doc": cab.cliente_doc or "",
+            "id_cliente": cab.id_cliente,
+            "total": round(float(cab.total or 0.0), 2),
+            "vendedor": cab.usuario_nombre or "Sistema",
+            "sede_nombre": cab.sede_nombre or "Sede Central",
+            "sede_direccion": cab.sede_direccion or "Av. Central 123",
+            "detalles": items
         }
+
         return jsonify(data), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
+        return jsonify({"error": str(e)}), 500

@@ -1,22 +1,10 @@
 from flask import Blueprint, request, jsonify
-from sqlalchemy import func, text
-from sqlalchemy.orm import joinedload
+from sqlalchemy import text
 from database import get_db
-import models
 
 proveedores_bp = Blueprint("proveedores", __name__)
 
-def check_supervisor_or_admin(db, user_role, user_id=None):
-    if user_role and user_role.lower() in ["administrador", "admin", "supervisor"]:
-        return True
-    if user_id:
-        user = db.query(models.User).filter(models.User.id == user_id).first()
-        if user:
-            roles = [r.lower() for r in (user.roles or [])]
-            return any(r in ["administrador", "admin", "supervisor"] for r in roles)
-    return False
-
-
+# Listar proveedores mediante Función Almacenada fn_listar_proveedores
 @proveedores_bp.route("/api/proveedores", methods=["GET"])
 def get_proveedores():
     user_role = request.headers.get("X-Role", "Administrador")
@@ -26,43 +14,24 @@ def get_proveedores():
     db = get_db()
     try:
         id_sede_param = request.args.get("id_sede") or request.args.get("sede_id")
-        query = db.query(models.Proveedor).options(joinedload(models.Proveedor.sede)).filter(models.Proveedor.estado_registro == 1)
-        if id_sede_param and str(id_sede_param).isdigit():
-            query = query.filter(models.Proveedor.id_sede == int(id_sede_param))
+        id_sede = int(id_sede_param) if id_sede_param and str(id_sede_param).isdigit() else None
 
-        proveedores = query.order_by(models.Proveedor.razon_social.asc()).all()
-
-        prods_map = dict(
-            db.query(models.ProveedorProducto.id_proveedor, func.count(models.ProveedorProducto.id_proveedor_producto))
-            .filter(models.ProveedorProducto.estado_registro == 1)
-            .group_by(models.ProveedorProducto.id_proveedor)
-            .all()
-        )
-
-        ordenes_map = dict(
-            db.query(models.OrdenCompra.id_proveedor, func.count(models.OrdenCompra.id_orden_compra))
-            .filter(models.OrdenCompra.estado_registro == 1)
-            .group_by(models.OrdenCompra.id_proveedor)
-            .all()
-        )
-
-        calif_map = dict(
-            db.query(models.EvaluacionProveedor.id_proveedor, func.avg(models.EvaluacionProveedor.calificacion))
-            .filter(models.EvaluacionProveedor.estado_registro == 1)
-            .group_by(models.EvaluacionProveedor.id_proveedor)
-            .all()
-        )
+        rows = db.execute(
+            text("""
+                SELECT id_proveedor, id_sede, sede_nombre, ruc, razon_social,
+                       nombre_contacto, telefono, correo, direccion, condiciones_pago,
+                       total_productos, total_ordenes, calificacion_promedio, fecha_registro
+                FROM fn_listar_proveedores(:p_id_sede)
+            """),
+            {"p_id_sede": id_sede}
+        ).fetchall()
 
         resultado = []
-        for p in proveedores:
-            total_prods = prods_map.get(p.id_proveedor, 0)
-            total_ordenes = ordenes_map.get(p.id_proveedor, 0)
-            promedio_calif = calif_map.get(p.id_proveedor, None)
-
+        for p in rows:
             resultado.append({
                 "id_proveedor": p.id_proveedor,
                 "id_sede": p.id_sede,
-                "sede_nombre": p.sede.nombre if p.sede else "Sin sede asignada",
+                "sede_nombre": p.sede_nombre or "Sin sede asignada",
                 "ruc": p.ruc,
                 "razon_social": p.razon_social,
                 "nombre_contacto": p.nombre_contacto or "",
@@ -70,17 +39,19 @@ def get_proveedores():
                 "correo": p.correo or "",
                 "direccion": p.direccion or "",
                 "condiciones_pago": p.condiciones_pago or "Contado",
-                "total_productos": total_prods,
-                "total_ordenes": total_ordenes,
-                "calificacion_promedio": round(float(promedio_calif), 1) if promedio_calif else None,
+                "total_productos": int(p.total_productos or 0),
+                "total_ordenes": int(p.total_ordenes or 0),
+                "calificacion_promedio": round(float(p.calificacion_promedio), 1) if p.calificacion_promedio else None,
                 "fecha_registro": p.fecha_registro.strftime("%Y-%m-%d %H:%M") if p.fecha_registro else ""
             })
 
         return jsonify(resultado), 200
+
     except Exception as e:
         return jsonify({"error": f"Error al obtener proveedores: {str(e)}"}), 500
 
 
+# Obtener datos de un proveedor mediante Función Almacenada fn_obtener_proveedor
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>", methods=["GET"])
 def get_proveedor(id_proveedor):
     user_role = request.headers.get("X-Role", "Administrador")
@@ -89,28 +60,23 @@ def get_proveedor(id_proveedor):
 
     db = get_db()
     try:
-        p = db.query(models.Proveedor).filter(
-            models.Proveedor.id_proveedor == id_proveedor,
-            models.Proveedor.estado_registro == 1
-        ).first()
+        p = db.execute(
+            text("""
+                SELECT id_proveedor, id_sede, sede_nombre, ruc, razon_social,
+                       nombre_contacto, telefono, correo, direccion, condiciones_pago,
+                       total_productos, total_ordenes, fecha_registro
+                FROM fn_obtener_proveedor(:id_proveedor)
+            """),
+            {"id_proveedor": id_proveedor}
+        ).fetchone()
 
         if not p:
             return jsonify({"error": "Proveedor no encontrado"}), 404
 
-        total_prods = db.query(models.ProveedorProducto).filter(
-            models.ProveedorProducto.id_proveedor == p.id_proveedor,
-            models.ProveedorProducto.estado_registro == 1
-        ).count()
-
-        total_ordenes = db.query(models.OrdenCompra).filter(
-            models.OrdenCompra.id_proveedor == p.id_proveedor,
-            models.OrdenCompra.estado_registro == 1
-        ).count()
-
         data = {
             "id_proveedor": p.id_proveedor,
             "id_sede": p.id_sede,
-            "sede_nombre": p.sede.nombre if p.sede else "Sin sede",
+            "sede_nombre": p.sede_nombre or "Sin sede",
             "ruc": p.ruc,
             "razon_social": p.razon_social,
             "nombre_contacto": p.nombre_contacto or "",
@@ -118,11 +84,12 @@ def get_proveedor(id_proveedor):
             "correo": p.correo or "",
             "direccion": p.direccion or "",
             "condiciones_pago": p.condiciones_pago or "Contado",
-            "total_productos": total_prods,
-            "total_ordenes": total_ordenes,
+            "total_productos": int(p.total_productos or 0),
+            "total_ordenes": int(p.total_ordenes or 0),
             "fecha_registro": p.fecha_registro.strftime("%Y-%m-%d %H:%M") if p.fecha_registro else ""
         }
         return jsonify(data), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -166,7 +133,6 @@ def create_proveedor():
 
         id_sede_final = int(id_sede) if id_sede and str(id_sede).isdigit() else 1
 
-        # Invocación de Stored Procedure sp_guardar_proveedor
         res = db.execute(
             text("""
                 CALL sp_guardar_proveedor(
@@ -219,7 +185,6 @@ def update_proveedor(id_proveedor):
         razon_social = str(data.get("razon_social", "")).strip()
         telefono = str(data.get("telefono", "")).strip()
 
-        # Invocación de Stored Procedure sp_guardar_proveedor
         res = db.execute(
             text("""
                 CALL sp_guardar_proveedor(
@@ -262,7 +227,6 @@ def delete_proveedor(id_proveedor):
 
     db = get_db()
     try:
-        # Invocación de Stored Procedure sp_eliminar_proveedor
         res = db.execute(
             text("CALL sp_eliminar_proveedor(:id_proveedor, NULL)"),
             {"id_proveedor": id_proveedor}
@@ -281,6 +245,7 @@ def delete_proveedor(id_proveedor):
         return jsonify({"error": f"Error al eliminar proveedor: {err_msg}"}), 500
 
 
+# Obtener catálogo del proveedor mediante Función Almacenada fn_catalogo_proveedor
 @proveedores_bp.route("/api/proveedores/<int:id_proveedor>/catalogo", methods=["GET"])
 def get_catalogo_proveedor(id_proveedor):
     user_role = request.headers.get("X-Role", "Administrador")
@@ -289,26 +254,26 @@ def get_catalogo_proveedor(id_proveedor):
 
     db = get_db()
     try:
-        rows = db.query(models.ProveedorProducto).options(
-            joinedload(models.ProveedorProducto.producto)
-        ).filter(
-            models.ProveedorProducto.id_proveedor == id_proveedor,
-            models.ProveedorProducto.estado_registro == 1
-        ).all()
+        rows = db.execute(
+            text("""
+                SELECT id_proveedor_producto, id_producto, codigo_producto, nombre_producto,
+                       precio_pactado, plazo_entrega_dias, es_principal
+                FROM fn_catalogo_proveedor(:id_proveedor)
+            """),
+            {"id_proveedor": id_proveedor}
+        ).fetchall()
 
-        catalogo = []
-        for r in rows:
-            prod = r.producto
-            catalogo.append({
-                "id_proveedor_producto": r.id_proveedor_producto,
-                "id_producto": r.id_producto,
-                "codigo_producto": prod.codigo_producto if prod else "",
-                "nombre_producto": prod.nombre if prod else "Producto desconocido",
-                "precio_pactado": round(float(r.precio_pactado), 2),
-                "plazo_entrega_dias": r.plazo_entrega_dias or 1,
-                "es_principal": bool(r.es_principal)
-            })
+        catalogo = [{
+            "id_proveedor_producto": r.id_proveedor_producto,
+            "id_producto": r.id_producto,
+            "codigo_producto": r.codigo_producto or "",
+            "nombre_producto": r.nombre_producto or "Producto desconocido",
+            "precio_pactado": round(float(r.precio_pactado), 2),
+            "plazo_entrega_dias": r.plazo_entrega_dias or 1,
+            "es_principal": bool(r.es_principal)
+        } for r in rows]
 
         return jsonify(catalogo), 200
+
     except Exception as e:
         return jsonify({"error": f"Error al obtener catálogo del proveedor: {str(e)}"}), 500

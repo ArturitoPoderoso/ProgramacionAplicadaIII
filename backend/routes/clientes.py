@@ -4,7 +4,7 @@ from database import get_db
 
 clientes_bp = Blueprint("clientes", __name__)
 
-# Listar todos los clientes activos con opción de búsqueda
+# Listar clientes mediante Función Almacenada fn_listar_clientes
 @clientes_bp.route("/api/clientes", methods=["GET"])
 def get_clientes():
     db = get_db()
@@ -13,38 +13,10 @@ def get_clientes():
         page = request.args.get("page", type=int)
         limit = request.args.get("limit", default=20, type=int)
 
-        base_sql = """
-            SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono, fecha_registro
-            FROM clientes
-            WHERE estado_registro = 1
-        """
-        params = {}
-
-        if search:
-            base_sql += """
-                AND (
-                    numero_documento ILIKE :search
-                    OR nombre ILIKE :search
-                    OR telefono ILIKE :search
-                )
-            """
-            params["search"] = f"%{search}%"
-
-        base_sql += " ORDER BY id_cliente DESC"
-
-        if page and page > 0:
-            count_sql = f"SELECT COUNT(*) FROM ({base_sql}) AS total_query"
-            total_items = db.execute(text(count_sql), params).scalar() or 0
-            total_pages = (total_items + limit - 1) // limit if limit > 0 else 1
-
-            paged_sql = base_sql + " LIMIT :limit OFFSET :offset"
-            params["limit"] = limit
-            params["offset"] = (page - 1) * limit
-            rows = db.execute(text(paged_sql), params).fetchall()
-        else:
-            total_items = None
-            total_pages = None
-            rows = db.execute(text(base_sql), params).fetchall()
+        rows = db.execute(
+            text("SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono, fecha_registro FROM fn_listar_clientes(:p_search)"),
+            {"p_search": search if search else None}
+        ).fetchall()
 
         resultado = []
         for r in rows:
@@ -59,8 +31,12 @@ def get_clientes():
             })
 
         if page and page > 0:
+            total_items = len(resultado)
+            total_pages = (total_items + limit - 1) // limit if limit > 0 else 1
+            start_idx = (page - 1) * limit
+            paged_items = resultado[start_idx : start_idx + limit]
             return jsonify({
-                "items": resultado,
+                "items": paged_items,
                 "total": total_items,
                 "page": page,
                 "pages": total_pages,
@@ -73,7 +49,7 @@ def get_clientes():
         return jsonify({"error": f"Error al consultar clientes: {str(e)}"}), 500
 
 
-# Búsqueda rápida de cliente mediante función almacenada fn_buscar_cliente
+# Búsqueda rápida de cliente mediante Función Almacenada fn_buscar_cliente
 @clientes_bp.route("/api/clientes/buscar/<doc>", methods=["GET"])
 def buscar_cliente_por_doc(doc):
     db = get_db()
@@ -100,17 +76,13 @@ def buscar_cliente_por_doc(doc):
         return jsonify({"error": f"Error al buscar cliente: {str(e)}"}), 500
 
 
-# Obtener datos de un cliente específico por ID
+# Obtener datos de un cliente mediante Función Almacenada fn_obtener_cliente
 @clientes_bp.route("/api/clientes/<int:id_cliente>", methods=["GET"])
 def get_cliente(id_cliente):
     db = get_db()
     try:
         row = db.execute(
-            text("""
-                SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono, fecha_registro
-                FROM clientes
-                WHERE id_cliente = :id AND estado_registro = 1
-            """),
+            text("SELECT id_cliente, tipo_documento, numero_documento, nombre, telefono, fecha_registro FROM fn_obtener_cliente(:id)"),
             {"id": id_cliente}
         ).fetchone()
 
@@ -157,7 +129,6 @@ def create_cliente():
             if not (num_doc.startswith("10") or num_doc.startswith("20")):
                 return jsonify({"error": "El RUC debe iniciar con '10' (Persona Natural) o '20' (Empresa)."}), 400
 
-        # Invocación del Stored Procedure sp_guardar_cliente
         res = db.execute(
             text("CALL sp_guardar_cliente(NULL, :tipo_doc, :num_doc, :nombre, :telefono, NULL, NULL)"),
             {
@@ -201,7 +172,6 @@ def update_cliente(id_cliente):
         tipo_doc = str(data.get("tipo_documento", "DNI")).strip().upper()
         telefono = str(data.get("telefono", "")).strip()
 
-        # Invocación del Stored Procedure sp_guardar_cliente pasando el id_cliente existente
         res = db.execute(
             text("CALL sp_guardar_cliente(:id_cliente, :tipo_doc, :num_doc, :nombre, :telefono, NULL, NULL)"),
             {

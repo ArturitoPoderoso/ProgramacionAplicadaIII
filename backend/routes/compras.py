@@ -1,10 +1,8 @@
 import json
 from datetime import datetime, timezone, timedelta
 from flask import Blueprint, request, jsonify
-from sqlalchemy.orm import joinedload
-from sqlalchemy import func, text
+from sqlalchemy import text
 from database import get_db
-import models
 
 compras_bp = Blueprint("compras", __name__)
 
@@ -21,30 +19,8 @@ def format_peru_datetime(dt):
         return dt.strftime("%Y-%m-%d %H:%M")
 
 def _calcular_siguiente_correlativo(db):
-    # Calcula el siguiente correlativo para la orden de compra según el año actual
-    year = datetime.now(PERU_TZ).year
-    prefix = f"OC-{year}-"
-    ultima_oc = db.execute(
-        text("SELECT correlativo FROM ordenes_compra WHERE correlativo LIKE :prefix ORDER BY id_orden_compra DESC LIMIT 1"),
-        {"prefix": f"{prefix}%"}
-    ).fetchone()
-
-    if ultima_oc and ultima_oc[0]:
-        try:
-            last_num = int(ultima_oc[0].split("-")[-1])
-            siguiente_num = last_num + 1
-        except Exception:
-            max_id = db.execute(text("SELECT MAX(id_orden_compra) FROM ordenes_compra")).scalar() or 0
-            siguiente_num = max_id + 1
-    else:
-        siguiente_num = 1
-
-    correlativo = f"{prefix}{siguiente_num:04d}"
-    while db.execute(text("SELECT id_orden_compra FROM ordenes_compra WHERE correlativo = :cor"), {"cor": correlativo}).fetchone():
-        siguiente_num += 1
-        correlativo = f"{prefix}{siguiente_num:04d}"
-
-    return correlativo
+    row = db.execute(text("SELECT fn_siguiente_correlativo_oc()")).fetchone()
+    return row[0] if row and row[0] else "OC-2026-0001"
 
 @compras_bp.route("/api/compras/siguiente-correlativo", methods=["GET"])
 def get_siguiente_correlativo_compra():
@@ -116,7 +92,6 @@ def emitir_orden_compra():
 
         total_orden = round(total_orden, 2)
 
-        # Invocación de Stored Procedure sp_procesar_compra
         res = db.execute(
             text("""
                 CALL sp_procesar_compra(
@@ -153,6 +128,7 @@ def emitir_orden_compra():
         return jsonify({"error": f"Error al emitir orden de compra: {str(e)}"}), 500
 
 
+# Listar órdenes de compra mediante Función Almacenada fn_listar_compras
 @compras_bp.route("/api/compras", methods=["GET"])
 def get_compras():
     user_role = request.headers.get("X-Role", "Administrador")
@@ -161,59 +137,47 @@ def get_compras():
 
     db = get_db()
     try:
-        id_sede = request.args.get("id_sede")
-        estado_filtro = request.args.get("estado")
-        search = (request.args.get("search") or "").strip().lower()
+        id_sede = request.args.get("id_sede", type=int)
+        estado_filtro = request.args.get("estado", type=str)
+        search = request.args.get("search", type=str)
 
-        query = db.query(models.OrdenCompra).options(
-            joinedload(models.OrdenCompra.proveedor),
-            joinedload(models.OrdenCompra.usuario),
-            joinedload(models.OrdenCompra.sede),
-            joinedload(models.OrdenCompra.detalles)
-        ).filter(models.OrdenCompra.estado_registro == 1)
-
-        if id_sede and str(id_sede).isdigit():
-            query = query.filter(models.OrdenCompra.id_sede == int(id_sede))
-
-        if estado_filtro and estado_filtro.upper() in ["PENDIENTE", "RECIBIDA", "ANULADA"]:
-            query = query.filter(models.OrdenCompra.estado == estado_filtro.upper())
-
-        ordenes = query.order_by(models.OrdenCompra.id_orden_compra.desc()).all()
+        rows = db.execute(
+            text("""
+                SELECT id_orden_compra, correlativo, id_proveedor, proveedor_nombre,
+                       proveedor_ruc, proveedor_telefono, proveedor_contacto,
+                       id_sede, sede_nombre, id_usuario, usuario_nombre,
+                       fecha_emision, fecha_esperada, fecha_recepcion, estado,
+                       total, observacion, total_items, total_unidades
+                FROM fn_listar_compras(:p_id_sede, :p_estado, :p_search)
+            """),
+            {
+                "p_id_sede": id_sede if id_sede else None,
+                "p_estado": estado_filtro if estado_filtro else None,
+                "p_search": search if search else None
+            }
+        ).fetchall()
 
         resultado = []
-        for o in ordenes:
-            prov = o.proveedor
-            usuario = o.usuario
-            sede = o.sede
-
-            if search:
-                matches_correlativo = search in (o.correlativo or "").lower()
-                matches_prov = search in (prov.razon_social if prov else "").lower() or search in (prov.ruc if prov else "")
-                if not (matches_correlativo or matches_prov):
-                    continue
-
-            total_unidades = sum(d.cantidad_solicitada for d in o.detalles)
-            total_items = len(o.detalles)
-
+        for o in rows:
             resultado.append({
                 "id_orden_compra": o.id_orden_compra,
                 "correlativo": o.correlativo,
                 "id_proveedor": o.id_proveedor,
-                "proveedor_nombre": prov.razon_social if prov else "Proveedor Desconocido",
-                "proveedor_ruc": prov.ruc if prov else "",
-                "proveedor_telefono": prov.telefono if prov else "",
-                "proveedor_contacto": prov.nombre_contacto if prov else "",
+                "proveedor_nombre": o.proveedor_nombre or "Proveedor Desconocido",
+                "proveedor_ruc": o.proveedor_ruc or "",
+                "proveedor_telefono": o.proveedor_telefono or "",
+                "proveedor_contacto": o.proveedor_contacto or "",
                 "id_sede": o.id_sede,
-                "sede_nombre": sede.nombre if sede else "Sede Central",
+                "sede_nombre": o.sede_nombre or "Sede Central",
                 "id_usuario": o.id_usuario,
-                "usuario_nombre": f"{usuario.first_name or ''} {usuario.last_name or ''}".strip() or (usuario.username if usuario else "Sistema"),
+                "usuario_nombre": o.usuario_nombre or "Sistema",
                 "fecha_emision": format_peru_datetime(o.fecha_emision),
                 "fecha_esperada": o.fecha_esperada or "",
                 "fecha_recepcion": format_peru_datetime(o.fecha_recepcion),
                 "estado": o.estado,
                 "total": round(float(o.total or 0.0), 2),
-                "total_items": total_items,
-                "total_unidades": total_unidades,
+                "total_items": int(o.total_items or 0),
+                "total_unidades": int(o.total_unidades or 0),
                 "observacion": o.observacion or ""
             })
 
@@ -239,6 +203,7 @@ def get_compras():
         return jsonify({"error": f"Error al consultar compras: {str(e)}"}), 500
 
 
+# Obtener detalle de orden de compra mediante Funciones Almacenadas fn_obtener_compra_cabecera y fn_obtener_compra_detalle
 @compras_bp.route("/api/compras/<int:id_orden>", methods=["GET"])
 def get_detalle_compra(id_orden):
     user_role = request.headers.get("X-Role", "Administrador")
@@ -247,52 +212,61 @@ def get_detalle_compra(id_orden):
 
     db = get_db()
     try:
-        orden = db.query(models.OrdenCompra).filter(
-            models.OrdenCompra.id_orden_compra == id_orden,
-            models.OrdenCompra.estado_registro == 1
-        ).first()
+        cab = db.execute(
+            text("""
+                SELECT id_orden_compra, correlativo, id_proveedor, proveedor_nombre,
+                       proveedor_ruc, proveedor_telefono, proveedor_correo, proveedor_contacto,
+                       proveedor_direccion, id_sede, sede_nombre, sede_direccion,
+                       id_usuario, usuario_nombre, fecha_emision, fecha_esperada,
+                       fecha_recepcion, estado, total, observacion
+                FROM fn_obtener_compra_cabecera(:id_orden)
+            """),
+            {"id_orden": id_orden}
+        ).fetchone()
 
-        if not orden:
+        if not cab:
             return jsonify({"error": "Orden de compra no encontrada."}), 404
 
-        prov = orden.proveedor
-        usuario = orden.usuario
-        sede = orden.sede
+        det_rows = db.execute(
+            text("""
+                SELECT id_detalle_oc, id_producto, codigo_producto, nombre_producto,
+                       cantidad_solicitada, cantidad_recibida, precio_unitario, subtotal
+                FROM fn_obtener_compra_detalle(:id_orden)
+            """),
+            {"id_orden": id_orden}
+        ).fetchall()
 
-        items = []
-        for det in orden.detalles:
-            prod = det.producto
-            items.append({
-                "id_detalle_oc": det.id_detalle_oc,
-                "id_producto": det.id_producto,
-                "codigo_producto": prod.codigo_producto if prod else f"PROD-{det.id_producto}",
-                "nombre_producto": prod.nombre if prod else "Producto",
-                "cantidad_solicitada": det.cantidad_solicitada,
-                "cantidad_recibida": det.cantidad_recibida or 0,
-                "precio_unitario": round(float(det.precio_unitario), 2),
-                "subtotal": round(float(det.subtotal), 2)
-            })
+        items = [{
+            "id_detalle_oc": d.id_detalle_oc,
+            "id_producto": d.id_producto,
+            "codigo_producto": d.codigo_producto or f"PROD-{d.id_producto}",
+            "nombre_producto": d.nombre_producto or "Producto",
+            "cantidad_solicitada": d.cantidad_solicitada,
+            "cantidad_recibida": d.cantidad_recibida or 0,
+            "precio_unitario": round(float(d.precio_unitario), 2),
+            "subtotal": round(float(d.subtotal), 2)
+        } for d in det_rows]
 
         data = {
-            "id_orden_compra": orden.id_orden_compra,
-            "correlativo": orden.correlativo,
-            "id_proveedor": orden.id_proveedor,
-            "proveedor_nombre": prov.razon_social if prov else "",
-            "proveedor_ruc": prov.ruc if prov else "",
-            "proveedor_telefono": prov.telefono if prov else "",
-            "proveedor_correo": prov.correo if prov else "",
-            "proveedor_contacto": prov.nombre_contacto if prov else "",
-            "proveedor_direccion": prov.direccion if prov else "",
-            "id_sede": orden.id_sede,
-            "sede_nombre": sede.nombre if sede else "Sede Central",
-            "sede_direccion": sede.direccion if sede else "",
-            "usuario_nombre": f"{usuario.first_name or ''} {usuario.last_name or ''}".strip() or (usuario.username if usuario else "Sistema"),
-            "fecha_emision": format_peru_datetime(orden.fecha_emision),
-            "fecha_esperada": orden.fecha_esperada or "Inmediata",
-            "fecha_recepcion": format_peru_datetime(orden.fecha_recepcion),
-            "estado": orden.estado,
-            "total": round(float(orden.total or 0.0), 2),
-            "observacion": orden.observacion or "",
+            "id_orden_compra": cab.id_orden_compra,
+            "correlativo": cab.correlativo,
+            "id_proveedor": cab.id_proveedor,
+            "proveedor_nombre": cab.proveedor_nombre or "",
+            "proveedor_ruc": cab.proveedor_ruc or "",
+            "proveedor_telefono": cab.proveedor_telefono or "",
+            "proveedor_correo": cab.proveedor_correo or "",
+            "proveedor_contacto": cab.proveedor_contacto or "",
+            "proveedor_direccion": cab.proveedor_direccion or "",
+            "id_sede": cab.id_sede,
+            "sede_nombre": cab.sede_nombre or "Sede Central",
+            "sede_direccion": cab.sede_direccion or "",
+            "usuario_nombre": cab.usuario_nombre or "Sistema",
+            "fecha_emision": format_peru_datetime(cab.fecha_emision),
+            "fecha_esperada": cab.fecha_esperada or "Inmediata",
+            "fecha_recepcion": format_peru_datetime(cab.fecha_recepcion),
+            "estado": cab.estado,
+            "total": round(float(cab.total or 0.0), 2),
+            "observacion": cab.observacion or "",
             "items": items
         }
 
@@ -314,7 +288,6 @@ def recibir_orden_compra(id_orden):
         data = request.json or {}
         id_usuario = data.get("id_usuario") or 1
 
-        # Invocación de Stored Procedure sp_recibir_compra
         res = db.execute(
             text("CALL sp_recibir_compra(:id_orden, :id_usuario, NULL)"),
             {"id_orden": id_orden, "id_usuario": int(id_usuario)}
@@ -350,7 +323,6 @@ def anular_orden_compra(id_orden):
         motivo = str(data.get("motivo", "Anulación solicitada por el usuario")).strip()
         id_usuario = data.get("id_usuario") or 1
 
-        # Invocación de Stored Procedure sp_anular_compra
         res = db.execute(
             text("CALL sp_anular_compra(:id_orden, :id_usuario, :motivo, NULL)"),
             {

@@ -40,7 +40,7 @@ def handle_categorias():
     # GET
     try:
         rows = db.execute(
-            text("SELECT id_categoria, nombre, descripcion, id_padre FROM categorias WHERE estado_registro = 1 ORDER BY nombre ASC")
+            text("SELECT id_categoria, nombre, descripcion, id_padre FROM fn_listar_categorias()")
         ).fetchall()
 
         return jsonify([{
@@ -118,20 +118,10 @@ def subcategorias():
     # GET
     try:
         id_cat = request.args.get("id_categoria", type=int)
-        base_sql = """
-            SELECT s.id_subcategoria, s.nombre, s.descripcion, s.id_categoria,
-                   COALESCE(c.nombre, 'General') as categoria_nombre
-            FROM subcategorias s
-            LEFT JOIN categorias c ON c.id_categoria = s.id_categoria
-            WHERE s.estado_registro = 1
-        """
-        params = {}
-        if id_cat:
-            base_sql += " AND s.id_categoria = :id_cat"
-            params["id_cat"] = id_cat
-
-        base_sql += " ORDER BY s.nombre ASC"
-        rows = db.execute(text(base_sql), params).fetchall()
+        rows = db.execute(
+            text("SELECT id_subcategoria, nombre, descripcion, id_categoria, categoria_nombre FROM fn_listar_subcategorias(:id_cat)"),
+            {"id_cat": id_cat if id_cat else None}
+        ).fetchall()
 
         return jsonify([{
             "id_subcategoria": r.id_subcategoria,
@@ -183,26 +173,12 @@ def subcategoria_detail(sub_id):
 
 
 def _calcular_siguiente_codigo_producto(db):
-    ultimo_prod = db.execute(
-        text("SELECT codigo_producto FROM productos WHERE codigo_producto LIKE 'PROD-%' ORDER BY id_producto DESC LIMIT 1")
-    ).fetchone()
-
-    if ultimo_prod and ultimo_prod[0]:
-        try:
-            last_num = int(ultimo_prod[0].replace("PROD-", ""))
-            siguiente_num = last_num + 1
-        except Exception:
-            max_id = db.execute(text("SELECT MAX(id_producto) FROM productos")).scalar() or 0
-            siguiente_num = max_id + 1
-    else:
-        max_id = db.execute(text("SELECT MAX(id_producto) FROM productos")).scalar() or 0
-        siguiente_num = max_id + 1
-
-    codigo_siguiente = f"PROD-{siguiente_num:05d}"
-    while db.execute(text("SELECT id_producto FROM productos WHERE codigo_producto = :cod"), {"cod": codigo_siguiente}).fetchone():
-        siguiente_num += 1
-        codigo_siguiente = f"PROD-{siguiente_num:05d}"
-
+    row = db.execute(text("SELECT fn_siguiente_codigo_producto()")).fetchone()
+    codigo_siguiente = row[0] if row and row[0] else "PROD-00001"
+    try:
+        siguiente_num = int(codigo_siguiente.replace("PROD-", ""))
+    except Exception:
+        siguiente_num = 1
     return codigo_siguiente, siguiente_num
 
 
