@@ -115,8 +115,10 @@ function abrirModalCrearCliente() {
     document.getElementById('cli-numero-doc').value = '';
     document.getElementById('cli-nombre').value = '';
     document.getElementById('cli-telefono').value = '';
-    document.getElementById('cli-correo').value = '';
-    document.getElementById('cli-direccion').value = '';
+    const elCorreo = document.getElementById('cli-correo');
+    if (elCorreo) elCorreo.value = '';
+    const elDir = document.getElementById('cli-direccion');
+    if (elDir) elDir.value = '';
     onCambioTipoDocumentoCliente();
 
     if (typeof openModal === 'function') {
