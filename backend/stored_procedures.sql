@@ -1951,3 +1951,18 @@ $$;
 
 
 
+
+
+-- -----------------------------------------------------------------------------
+-- 13. RESTRICCIONES DE INTEGRIDAD REFERENCIAL (FOREIGN KEYS)
+-- -----------------------------------------------------------------------------
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_ventas_cliente') THEN
+        ALTER TABLE ventas ADD CONSTRAINT fk_ventas_cliente FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON DELETE SET NULL;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_proformas_cliente') THEN
+        ALTER TABLE proformas ADD CONSTRAINT fk_proformas_cliente FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON DELETE SET NULL;
+    END IF;
+END $$;
