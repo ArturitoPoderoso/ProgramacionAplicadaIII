@@ -1,50 +1,58 @@
 from flask import Blueprint, request, jsonify
-from sqlalchemy.orm import joinedload
-from sqlalchemy import func, text
+from sqlalchemy import text
 from database import get_db
-import models
 
 almacen_bp = Blueprint("almacen", __name__)
 
-# Gestión de categorías de productos
+# Gestión de categorías de productos mediante Stored Procedures y SQL directo
 @almacen_bp.route("/api/categorias", methods=["GET", "POST"])
 def handle_categorias():
+    db = get_db()
     if request.method == "POST":
         data = request.json or {}
         nombre = str(data.get("nombre", "")).strip()
         if not nombre:
             return jsonify({"error": "El nombre de la categoría es obligatorio"}), 400
 
-        db = get_db()
-        existe = db.query(models.Categoria).filter(models.Categoria.nombre.ilike(nombre)).first()
-        if existe:
-            return jsonify({"error": "La categoría ya existe"}), 400
-
         id_padre = data.get("id_padre")
-        if id_padre and str(id_padre).isdigit():
-            id_padre = int(id_padre)
-        else:
-            id_padre = None
+        id_padre_final = int(id_padre) if id_padre and str(id_padre).isdigit() else None
+        descripcion = str(data.get("descripcion", "")).strip()
 
-        nueva_cat = models.Categoria(
-            nombre=nombre,
-            descripcion=data.get("descripcion", ""),
-            id_padre=id_padre
-        )
-        db.add(nueva_cat)
-        db.commit()
-        cat_id = nueva_cat.id_categoria
-        return jsonify({"message": "Categoría creada exitosamente", "id_categoria": cat_id}), 201
+        try:
+            res = db.execute(
+                text("CALL sp_guardar_categoria(NULL, :nombre, :descripcion, :id_padre, NULL, NULL)"),
+                {"nombre": nombre, "descripcion": descripcion, "id_padre": id_padre_final}
+            ).fetchone()
+            db.commit()
+
+            cat_id = res[0] if res else None
+            msg = res[1] if res and len(res) > 1 else "Categoría creada exitosamente"
+            return jsonify({"message": msg, "id_categoria": cat_id}), 201
+
+        except Exception as e:
+            db.rollback()
+            err_msg = str(e)
+            if "ya existe" in err_msg:
+                clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+                return jsonify({"error": clean_err}), 400
+            return jsonify({"error": f"Error al crear categoría: {err_msg}"}), 500
 
     # GET
-    db = get_db()
-    categorias = db.query(models.Categoria).filter(models.Categoria.estado_registro == 1).all()
-    return jsonify([{
-        "id_categoria": c.id_categoria,
-        "nombre": c.nombre,
-        "descripcion": c.descripcion,
-        "id_padre": getattr(c, 'id_padre', None)
-    } for c in categorias])
+    try:
+        rows = db.execute(
+            text("SELECT id_categoria, nombre, descripcion, id_padre FROM categorias WHERE estado_registro = 1 ORDER BY nombre ASC")
+        ).fetchall()
+
+        return jsonify([{
+            "id_categoria": r.id_categoria,
+            "nombre": r.nombre,
+            "descripcion": r.descripcion or "",
+            "id_padre": r.id_padre
+        } for r in rows]), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error al listar categorías: {str(e)}"}), 500
+
 
 @almacen_bp.route("/api/categorias/<int:cat_id>", methods=["PUT"])
 def update_categoria(cat_id):
@@ -53,22 +61,33 @@ def update_categoria(cat_id):
     if not nombre:
         return jsonify({"error": "El nombre de la categoría no puede estar vacío"}), 400
 
+    id_padre = data.get("id_padre")
+    id_padre_final = int(id_padre) if id_padre and str(id_padre).isdigit() else None
+    descripcion = str(data.get("descripcion", "")).strip()
+
     db = get_db()
-    cat = db.query(models.Categoria).filter(models.Categoria.id_categoria == cat_id).first()
-    if not cat:
-        return jsonify({"error": "Categoría no encontrada"}), 404
+    try:
+        res = db.execute(
+            text("CALL sp_guardar_categoria(:id_cat, :nombre, :descripcion, :id_padre, NULL, NULL)"),
+            {"id_cat": cat_id, "nombre": nombre, "descripcion": descripcion, "id_padre": id_padre_final}
+        ).fetchone()
+        db.commit()
 
-    cat.nombre = nombre
-    if "descripcion" in data:
-        cat.descripcion = data["descripcion"]
-    if "id_padre" in data:
-        cat.id_padre = int(data["id_padre"]) if data["id_padre"] and str(data["id_padre"]).isdigit() else None
+        msg = res[1] if res and len(res) > 1 else "Categoría actualizada exitosamente"
+        return jsonify({"message": msg}), 200
 
-    db.commit()
-    return jsonify({"message": "Categoría actualizada exitosamente"})
+    except Exception as e:
+        db.rollback()
+        err_msg = str(e)
+        if "ya existe" in err_msg:
+            clean_err = err_msg.split("CONTEXT:")[0].replace("pgcode: P0001", "").strip()
+            return jsonify({"error": clean_err}), 400
+        return jsonify({"error": f"Error al actualizar categoría: {err_msg}"}), 500
+
 
 @almacen_bp.route("/api/subcategorias", methods=["GET", "POST"])
 def subcategorias():
+    db = get_db()
     if request.method == "POST":
         data = request.json or {}
         nombre = str(data.get("nombre", "")).strip()
@@ -79,60 +98,91 @@ def subcategorias():
         if not id_categoria:
             return jsonify({"error": "La categoría padre es obligatoria para la subcategoría"}), 400
 
-        db = get_db()
-        nueva_sub = models.Subcategoria(
-            nombre=nombre,
-            descripcion=data.get("descripcion", ""),
-            id_categoria=int(id_categoria)
-        )
-        db.add(nueva_sub)
-        db.commit()
-        sub_id = nueva_sub.id_subcategoria
-        return jsonify({"message": "Subcategoría creada exitosamente", "id_subcategoria": sub_id}), 201
+        descripcion = str(data.get("descripcion", "")).strip()
+
+        try:
+            res = db.execute(
+                text("CALL sp_guardar_subcategoria(NULL, :nombre, :descripcion, :id_cat, NULL, NULL)"),
+                {"nombre": nombre, "descripcion": descripcion, "id_cat": int(id_categoria)}
+            ).fetchone()
+            db.commit()
+
+            sub_id = res[0] if res else None
+            msg = res[1] if res and len(res) > 1 else "Subcategoría creada exitosamente"
+            return jsonify({"message": msg, "id_subcategoria": sub_id}), 201
+
+        except Exception as e:
+            db.rollback()
+            return jsonify({"error": f"Error al crear subcategoría: {str(e)}"}), 500
 
     # GET
-    id_cat = request.args.get("id_categoria", type=int)
-    db = get_db()
-    query = db.query(models.Subcategoria).options(joinedload(models.Subcategoria.categoria)).filter(models.Subcategoria.estado_registro == 1)
-    if id_cat:
-        query = query.filter(models.Subcategoria.id_categoria == id_cat)
-        
-    subcats = query.all()
-    res = [{
-        "id_subcategoria": s.id_subcategoria,
-        "nombre": s.nombre,
-        "descripcion": s.descripcion,
-        "id_categoria": s.id_categoria,
-        "categoria_nombre": s.categoria.nombre if s.categoria else "General"
-    } for s in subcats]
-    return jsonify(res)
+    try:
+        id_cat = request.args.get("id_categoria", type=int)
+        base_sql = """
+            SELECT s.id_subcategoria, s.nombre, s.descripcion, s.id_categoria,
+                   COALESCE(c.nombre, 'General') as categoria_nombre
+            FROM subcategorias s
+            LEFT JOIN categorias c ON c.id_categoria = s.id_categoria
+            WHERE s.estado_registro = 1
+        """
+        params = {}
+        if id_cat:
+            base_sql += " AND s.id_categoria = :id_cat"
+            params["id_cat"] = id_cat
+
+        base_sql += " ORDER BY s.nombre ASC"
+        rows = db.execute(text(base_sql), params).fetchall()
+
+        return jsonify([{
+            "id_subcategoria": r.id_subcategoria,
+            "nombre": r.nombre,
+            "descripcion": r.descripcion or "",
+            "id_categoria": r.id_categoria,
+            "categoria_nombre": r.categoria_nombre
+        } for r in rows]), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error al listar subcategorías: {str(e)}"}), 500
+
 
 @almacen_bp.route("/api/subcategorias/<int:sub_id>", methods=["PUT", "DELETE"])
 def subcategoria_detail(sub_id):
     db = get_db()
-    sub = db.query(models.Subcategoria).filter(models.Subcategoria.id_subcategoria == sub_id).first()
-    if not sub:
-        return jsonify({"error": "Subcategoría no encontrada"}), 404
-
     if request.method == "DELETE":
-        sub.estado_registro = 0
-        db.commit()
-        return jsonify({"message": "Subcategoría eliminada exitosamente"})
+        try:
+            res = db.execute(
+                text("CALL sp_eliminar_subcategoria(:sub_id, NULL)"),
+                {"sub_id": sub_id}
+            ).fetchone()
+            db.commit()
+            msg = res[0] if res else "Subcategoría eliminada exitosamente"
+            return jsonify({"message": msg}), 200
+        except Exception as e:
+            db.rollback()
+            return jsonify({"error": f"Error al eliminar subcategoría: {str(e)}"}), 500
 
     # PUT
     data = request.json or {}
-    if "nombre" in data and data["nombre"]:
-        sub.nombre = str(data["nombre"]).strip()
-    if "descripcion" in data:
-        sub.descripcion = str(data["descripcion"]).strip()
-    if "id_categoria" in data and data["id_categoria"]:
-        sub.id_categoria = int(data["id_categoria"])
+    nombre = str(data.get("nombre", "")).strip() if "nombre" in data else None
+    descripcion = str(data.get("descripcion", "")).strip() if "descripcion" in data else None
+    id_cat = int(data.get("id_categoria")) if "id_categoria" in data and str(data.get("id_categoria")).isdigit() else None
 
-    db.commit()
-    return jsonify({"message": "Subcategoría actualizada exitosamente"})
+    try:
+        res = db.execute(
+            text("CALL sp_guardar_subcategoria(:sub_id, :nombre, :descripcion, :id_cat, NULL, NULL)"),
+            {"sub_id": sub_id, "nombre": nombre, "descripcion": descripcion, "id_cat": id_cat}
+        ).fetchone()
+        db.commit()
+
+        msg = res[1] if res and len(res) > 1 else "Subcategoría actualizada exitosamente"
+        return jsonify({"message": msg}), 200
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": f"Error al actualizar subcategoría: {str(e)}"}), 500
+
 
 def _calcular_siguiente_codigo_producto(db):
-    # Genera el siguiente correlativo para el código de producto (ej: PROD-00045)
     ultimo_prod = db.execute(
         text("SELECT codigo_producto FROM productos WHERE codigo_producto LIKE 'PROD-%' ORDER BY id_producto DESC LIMIT 1")
     ).fetchone()
@@ -155,6 +205,7 @@ def _calcular_siguiente_codigo_producto(db):
 
     return codigo_siguiente, siguiente_num
 
+
 # Listado de productos por sede usando la función almacenada fn_listar_productos_sede
 @almacen_bp.route("/api/productos", methods=["GET"])
 def get_productos():
@@ -167,7 +218,6 @@ def get_productos():
 
     db = get_db()
     try:
-        # Llamada a la función PL/pgSQL fn_listar_productos_sede
         rows = db.execute(
             text("""
                 SELECT id_producto, codigo_producto, nombre, descripcion,
@@ -178,7 +228,6 @@ def get_productos():
             {"sede_id": sede_id}
         ).fetchall()
 
-        # Filtrado en memoria si hay parámetros adicionales
         resultado = []
         for r in rows:
             if id_cat and r.id_categoria != id_cat:
@@ -222,11 +271,13 @@ def get_productos():
     except Exception as e:
         return jsonify({"error": f"Error al listar productos: {str(e)}"}), 500
 
+
 @almacen_bp.route("/api/productos/siguiente-codigo", methods=["GET"])
 def get_siguiente_codigo_producto():
     db = get_db()
     codigo_siguiente, siguiente_num = _calcular_siguiente_codigo_producto(db)
     return jsonify({"codigo": codigo_siguiente, "numero": siguiente_num})
+
 
 # Creación o actualización de producto mediante Stored Procedure sp_guardar_producto
 @almacen_bp.route("/api/productos", methods=["POST"])
@@ -286,49 +337,6 @@ def create_producto():
 
         return jsonify({"message": msg, "id_producto": id_prod}), 201
 
-    except Exception as e:
-        db.rollback()
-        return jsonify({"error": str(e)}), 400
-
-@almacen_bp.route("/api/categorias/seed", methods=["POST"])
-def seed_subcategorias():
-    db = get_db()
-    try:
-        subcats_map = {
-            1: ["Martillos y Combas", "Alicates y Tenazas", "Destornilladores y Llaves"],
-            2: ["Taladros y Rotomartillos", "Amoladoras y Esmeriles", "Sierras y Cortadoras"],
-            3: ["Cemento y Agregados", "Ladrillos y Bloques", "Fierros y Varillas"],
-            4: ["Pinturas Látex", "Esmaltes Sintéticos", "Brochas y Rodillos", "Thinner y Disolventes"],
-            5: ["Tubos y Conexiones PVC", "Grifería y Llaves", "Accesorios para Gas"],
-            6: ["Cables y Conductores", "Tomacorrientes e Llaves Térmicas", "Focos y Luminarias LED"],
-            7: ["Tornillos y Pijas", "Pernos y Tuercas", "Tarugos y Anclajes"],
-            8: ["Cascos y Guantes", "Calzado y Lentes de Seguridad"],
-            9: ["Siliconas y Masillas", "Pegamentos y Colas"],
-            10: ["Mangueras y Aspersores", "Herramientas de Jardín"]
-        }
-
-        created = 0
-        for parent_id, sub_names in subcats_map.items():
-            parent = db.query(models.Categoria).filter(models.Categoria.id_categoria == parent_id).first()
-            if not parent:
-                continue
-            for name in sub_names:
-                exist = db.query(models.Categoria).filter(models.Categoria.nombre == name, models.Categoria.id_padre == parent_id).first()
-                if not exist:
-                    db.add(models.Categoria(nombre=name, descripcion=f"Subcategoría de {parent.nombre}", id_padre=parent_id, estado_registro=1))
-                    created += 1
-        db.commit()
-
-        prods = db.query(models.Producto).all()
-        reassigned = 0
-        for prod in prods:
-            if prod.id_categoria and prod.id_categoria in subcats_map:
-                first_sub = db.query(models.Categoria).filter(models.Categoria.id_padre == prod.id_categoria).first()
-                if first_sub:
-                    prod.id_categoria = first_sub.id_categoria
-                    reassigned += 1
-        db.commit()
-        return jsonify({"message": f"Subcategorías sembradas con éxito: {created} creadas, {reassigned} productos reasignados."}), 200
     except Exception as e:
         db.rollback()
         return jsonify({"error": str(e)}), 400

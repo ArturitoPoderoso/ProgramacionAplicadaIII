@@ -731,3 +731,110 @@ BEGIN
     LIMIT 10;
 END;
 $$;
+
+-- -----------------------------------------------------------------------------
+-- 8. CATEGORÍAS Y SUBCATEGORÍAS: sp_guardar_categoria, sp_guardar_subcategoria, sp_eliminar_subcategoria
+-- -----------------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS sp_guardar_categoria;
+CREATE OR REPLACE PROCEDURE sp_guardar_categoria(
+    p_id_categoria INT,
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_id_padre INT,
+    INOUT o_id_categoria INT DEFAULT NULL,
+    INOUT o_mensaje VARCHAR DEFAULT 'OK'
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_existente RECORD;
+BEGIN
+    IF p_id_categoria IS NOT NULL AND p_id_categoria > 0 THEN
+        SELECT id_categoria, nombre INTO v_existente 
+        FROM categorias 
+        WHERE LOWER(nombre) = LOWER(p_nombre) 
+          AND id_categoria <> p_id_categoria 
+          AND estado_registro = 1;
+
+        IF FOUND THEN
+            RAISE EXCEPTION 'La categoría "%" ya existe.', p_nombre;
+        END IF;
+
+        UPDATE categorias
+        SET nombre = p_nombre,
+            descripcion = COALESCE(p_descripcion, descripcion),
+            id_padre = p_id_padre
+        WHERE id_categoria = p_id_categoria;
+
+        o_id_categoria := p_id_categoria;
+        o_mensaje := 'Categoría actualizada exitosamente';
+    ELSE
+        SELECT id_categoria, estado_registro INTO v_existente 
+        FROM categorias 
+        WHERE LOWER(nombre) = LOWER(p_nombre);
+
+        IF FOUND THEN
+            IF v_existente.estado_registro = 1 THEN
+                RAISE EXCEPTION 'La categoría "%" ya existe.', p_nombre;
+            ELSE
+                UPDATE categorias
+                SET descripcion = p_descripcion,
+                    id_padre = p_id_padre,
+                    estado_registro = 1
+                WHERE id_categoria = v_existente.id_categoria;
+                o_id_categoria := v_existente.id_categoria;
+                o_mensaje := 'Categoría reactivada exitosamente';
+            END IF;
+        ELSE
+            INSERT INTO categorias (nombre, descripcion, id_padre, estado_registro)
+            VALUES (p_nombre, p_descripcion, p_id_padre, 1)
+            RETURNING id_categoria INTO o_id_categoria;
+            o_mensaje := 'Categoría creada exitosamente';
+        END IF;
+    END IF;
+END;
+$$;
+
+DROP PROCEDURE IF EXISTS sp_guardar_subcategoria;
+CREATE OR REPLACE PROCEDURE sp_guardar_subcategoria(
+    p_id_subcategoria INT,
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_id_categoria INT,
+    INOUT o_id_subcategoria INT DEFAULT NULL,
+    INOUT o_mensaje VARCHAR DEFAULT 'OK'
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id_subcategoria IS NOT NULL AND p_id_subcategoria > 0 THEN
+        UPDATE subcategorias
+        SET nombre = COALESCE(p_nombre, nombre),
+            descripcion = COALESCE(p_descripcion, descripcion),
+            id_categoria = COALESCE(p_id_categoria, id_categoria)
+        WHERE id_subcategoria = p_id_subcategoria;
+
+        o_id_subcategoria := p_id_subcategoria;
+        o_mensaje := 'Subcategoría actualizada exitosamente';
+    ELSE
+        INSERT INTO subcategorias (nombre, descripcion, id_categoria, estado_registro)
+        VALUES (p_nombre, p_descripcion, p_id_categoria, 1)
+        RETURNING id_subcategoria INTO o_id_subcategoria;
+        o_mensaje := 'Subcategoría creada exitosamente';
+    END IF;
+END;
+$$;
+
+DROP PROCEDURE IF EXISTS sp_eliminar_subcategoria;
+CREATE OR REPLACE PROCEDURE sp_eliminar_subcategoria(
+    p_id_subcategoria INT,
+    INOUT o_mensaje VARCHAR DEFAULT 'OK'
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE subcategorias SET estado_registro = 0 WHERE id_subcategoria = p_id_subcategoria;
+    o_mensaje := 'Subcategoría eliminada exitosamente';
+END;
+$$;
+
