@@ -135,19 +135,25 @@ const ComprasModule = {
         const opt = selectProv.options[selectProv.selectedIndex];
         this.proveedorSeleccionadoOC = {
             id_proveedor: parseInt(idProv),
-            razon_social: opt.textContent.trim(),
-            ruc: opt.dataset.ruc,
-            contacto: opt.dataset.contacto,
-            telefono: opt.dataset.telefono,
-            correo: opt.dataset.correo
+            razon_social: opt ? opt.textContent.trim() : '',
+            ruc: opt ? (opt.dataset.ruc || '---') : '---',
+            contacto: opt ? (opt.dataset.contacto || '---') : '---',
+            telefono: opt ? (opt.dataset.telefono || '---') : '---',
+            correo: opt ? (opt.dataset.correo || '---') : '---'
         };
 
         if (cardInfo) {
-            document.getElementById('oc-card-razon').innerText = this.proveedorSeleccionadoOC.razon_social;
-            document.getElementById('oc-card-ruc').innerText = `RUC: ${this.proveedorSeleccionadoOC.ruc}`;
-            document.getElementById('oc-card-contacto').innerText = `Contacto: ${this.proveedorSeleccionadoOC.contacto}`;
-            document.getElementById('oc-card-telefono').innerText = `Teléfono: ${this.proveedorSeleccionadoOC.telefono}`;
-            cardInfo.style.display = 'block';
+            const elRazon = document.getElementById('oc-card-razon');
+            if (elRazon) elRazon.innerText = this.proveedorSeleccionadoOC.razon_social;
+            const elRuc = document.getElementById('oc-card-ruc');
+            if (elRuc) elRuc.innerText = `RUC: ${this.proveedorSeleccionadoOC.ruc}`;
+            const elContacto = document.getElementById('oc-card-contacto');
+            if (elContacto) elContacto.innerText = `Contacto: ${this.proveedorSeleccionadoOC.contacto}`;
+            const elTel = document.getElementById('oc-card-telefono');
+            if (elTel) elTel.innerText = `Teléfono: ${this.proveedorSeleccionadoOC.telefono}`;
+            const elCorreo = document.getElementById('oc-card-correo');
+            if (elCorreo) elCorreo.innerText = `Correo: ${this.proveedorSeleccionadoOC.correo}`;
+            cardInfo.style.display = 'flex';
         }
 
         this.itemsOrdenCompraActual = [];
@@ -173,25 +179,53 @@ const ComprasModule = {
             if (!res.ok) throw new Error('Error al cargar catálogo del proveedor.');
 
             const prods = await res.json();
-            this.productosCatalogoProveedorOC = prods;
+            this.productosCatalogoProveedorOC = prods || [];
 
-            if (prods.length === 0) {
+            if (this.productosCatalogoProveedorOC.length === 0) {
+                // Fallback amigable: cargar productos generales de almacén para que el usuario pueda abastecerse
+                try {
+                    const fallbackRes = await fetch(`${this.apiUrl}/productos?sede_id=1`, {
+                        headers: { 'X-Role': userRole }
+                    });
+                    if (fallbackRes.ok) {
+                        const allProds = await fallbackRes.json();
+                        if (allProds && allProds.length > 0) {
+                            selectProd.innerHTML = '<option value="">-- Selecciona producto de almacén --</option>';
+                            allProds.forEach(p => {
+                                const opt = document.createElement('option');
+                                opt.value = p.id_producto;
+                                const pr = parseFloat(p.precio_compra || 0);
+                                opt.textContent = `${p.codigo_producto} - ${p.nombre} (Ref. S/. ${pr.toFixed(2)})`;
+                                opt.dataset.codigo = p.codigo_producto;
+                                opt.dataset.nombre = p.nombre;
+                                opt.dataset.precio = pr;
+                                selectProd.appendChild(opt);
+                            });
+                            this.notify('Proveedor sin catálogo exclusivo: mostrando productos generales de almacén.', 'info');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Fallback productos error:", e);
+                }
                 selectProd.innerHTML = '<option value="">(Este proveedor aún no tiene productos vinculados)</option>';
                 this.notify('El proveedor seleccionado no tiene productos en su catálogo.', 'warning');
                 return;
             }
 
             selectProd.innerHTML = '<option value="">-- Selecciona un producto pactado --</option>';
-            prods.forEach(p => {
+            this.productosCatalogoProveedorOC.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.id_producto;
-                opt.textContent = `${p.codigo_producto} - ${p.nombre_producto} (Pactado: S/. ${p.precio_pactado.toFixed(2)})`;
+                const prec = parseFloat(p.precio_pactado || 0);
+                opt.textContent = `${p.codigo_producto} - ${p.nombre_producto} (Pactado: S/. ${prec.toFixed(2)})`;
                 opt.dataset.codigo = p.codigo_producto;
                 opt.dataset.nombre = p.nombre_producto;
-                opt.dataset.precio = p.precio_pactado;
+                opt.dataset.precio = prec;
                 selectProd.appendChild(opt);
             });
         } catch (err) {
+            console.error("Error catálogo proveedor:", err);
             selectProd.innerHTML = '<option value="">Error al cargar catálogo</option>';
             this.notify(err.message, 'error');
         }
