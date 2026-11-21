@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.orm import joinedload
 from database import get_db
 import models
+from sunat_service import emitir_comprobante_sunat
 
 ventas_bp = Blueprint("ventas", __name__)
 
@@ -166,6 +167,25 @@ def create_venta():
         sede_tel = (sede.telefono if (sede and sede.telefono) else "01-1234567")
         vendedor_nom = f"{usuario.first_name} {usuario.last_name}".strip() or usuario.username
 
+        # Emisión de Comprobante Electrónico SUNAT
+        items_para_sunat = [
+            {
+                "id_producto": item["producto"].id_producto,
+                "nombre": item["producto"].nombre,
+                "cantidad": item["cantidad"],
+                "precio_unitario": item["precio_unitario"],
+                "descuento_unitario": item["descuento_unitario"]
+            }
+            for item in detalles_procesados
+        ]
+        sunat_res = emitir_comprobante_sunat({
+            "cliente_doc": cliente_doc,
+            "cliente_nombre": cliente_nombre,
+            "cliente_telefono": cliente_tel,
+            "metodo_pago": nueva_venta.metodo_pago,
+            "detalles": items_para_sunat
+        })
+
         res_data = {
             "message": "Venta procesada exitosamente",
             "id_venta": id_v,
@@ -180,7 +200,12 @@ def create_venta():
             "id_cliente": id_cliente,
             "cliente": cliente_nombre,
             "cliente_doc": cliente_doc,
-            "dni": cliente_doc
+            "dni": cliente_doc,
+            "sunat": sunat_res,
+            "tipo_comprobante": sunat_res.get("tipo_comprobante") if sunat_res.get("success") else ("FACTURA ELECTRÓNICA" if len(cliente_doc) == 11 else "BOLETA ELECTRÓNICA"),
+            "sunat_serie": sunat_res.get("serie_numero") or correlativo,
+            "sunat_hash": sunat_res.get("codigo_hash"),
+            "sunat_estado": sunat_res.get("estado_sunat") or "LOCAL"
         }
         return jsonify(res_data), 201
         

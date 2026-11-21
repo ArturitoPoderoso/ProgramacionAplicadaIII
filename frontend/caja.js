@@ -484,7 +484,11 @@ const CajaModule = {
                     sede_telefono: result.sede_telefono || '01-1234567',
                     vendedor: result.vendedor || user.first_name || 'Vendedor',
                     cliente: clienteNombre,
-                    dni: clienteDoc
+                    dni: clienteDoc,
+                    sunat_serie: result.sunat_serie,
+                    sunat_hash: result.sunat_hash,
+                    sunat_estado: result.sunat_estado,
+                    tipo_comprobante: result.tipo_comprobante
                 });
 
                 this.notify('¡Venta registrada exitosamente!', 'success');
@@ -566,10 +570,10 @@ const CajaModule = {
                     </div>
                 </div>
                 <div class="boleta-ruc-box">
-                    <div class="boleta-ruc-title">BOLETA DE VENTA</div>
-                    <div class="boleta-ruc-num">N° ${data.correlativo}</div>
-                    <div class="boleta-ruc-sub">R.U.C. 20601234567</div>
-                    <div style="font-size: 0.72rem; color: #64748b; margin-top:2px;">Serie 001</div>
+                    <div class="boleta-ruc-title">${data.tipo_comprobante || 'BOLETA DE VENTA'}</div>
+                    <div class="boleta-ruc-num">N° ${data.sunat_serie || data.correlativo}</div>
+                    <div class="boleta-ruc-sub">R.U.C. 20000000001</div>
+                    <div style="font-size: 0.72rem; color: #16a34a; font-weight: 700; margin-top:2px;">SUNAT: ${data.sunat_estado || 'ACEPTADO'}</div>
                 </div>
             </div>
 
@@ -618,14 +622,15 @@ const CajaModule = {
 
             <div class="boleta-footer">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="ph ph-qr-code" style="font-size: 2.2rem; color: #334155;"></i>
+                    <i class="ph ph-qr-code" style="font-size: 2.5rem; color: #334155;"></i>
                     <div>
                         <strong style="font-style: italic; font-size: 0.85rem;">¡Gracias por su compra!</strong><br>
-                        <span style="font-size: 0.72rem; color: #94a3b8;">Comprobante de Pago Electrónico</span>
+                        <span style="font-size: 0.72rem; color: #64748b;">Representación impresa del Comprobante Electrónico</span>
+                        ${data.sunat_hash ? `<br><span style="font-size: 0.68rem; color: #94a3b8; font-family: monospace;">Hash: ${data.sunat_hash}</span>` : ''}
                     </div>
                 </div>
                 <div style="font-size: 0.72rem; color: #94a3b8; font-style: italic;">
-                    * No se aceptan cambios ni devoluciones *
+                    * Autorizado mediante resolución de SUNAT *
                 </div>
             </div>
         `;
